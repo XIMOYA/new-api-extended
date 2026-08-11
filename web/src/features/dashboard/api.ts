@@ -19,6 +19,7 @@ For commercial licensing, please contact support@quantumnous.com
 import { api } from '@/lib/api'
 
 import type {
+  CacheHitRateSummary,
   FlowQuotaDataItem,
   QuotaDataItem,
   UptimeGroupResult,
@@ -48,6 +49,25 @@ export async function getUserQuotaDates(
     endpoint,
     { params }
   )
+  return res.data
+}
+
+export async function getCacheHitRateSummary(
+  params: {
+    start_timestamp: number
+    end_timestamp: number
+    default_time?: string
+    username?: string
+  },
+  isAdmin = false
+) {
+  const endpoint = isAdmin
+    ? '/api/data/cache-hit-rate'
+    : '/api/data/cache-hit-rate/self'
+  const res = await api.get<{
+    success: boolean
+    data: CacheHitRateSummary
+  }>(endpoint, { params })
   return res.data
 }
 

@@ -33,6 +33,18 @@ export interface QuotaDataItem {
   quota?: number
 }
 
+export interface CacheHitRateSummary {
+  input_tokens: number
+  output_tokens: number
+  cache_hit_tokens: number
+  cache_write_tokens: number
+  cache_input_tokens: number
+  total_tokens: number
+  cache_hit_rate: number
+  available: boolean
+  complete: boolean
+}
+
 export interface FlowQuotaDataItem {
   user_id?: number
   username?: string

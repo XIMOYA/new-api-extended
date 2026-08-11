@@ -83,6 +83,12 @@ const LazyLogStatCards = lazy(() =>
   }))
 )
 
+const LazyCacheHitRateCard = lazy(() =>
+  import('./components/models/cache-hit-rate-card').then((m) => ({
+    default: m.CacheHitRateCard,
+  }))
+)
+
 const LazyModelCharts = lazy(() =>
   import('./components/models/model-charts').then((m) => ({
     default: m.ModelCharts,
@@ -132,6 +138,28 @@ function LogStatCardsFallback() {
             </div>
             <Skeleton className='mt-1 h-5 w-16 sm:mt-2 sm:h-7 sm:w-20' />
             <Skeleton className='mt-1 hidden h-3.5 w-28 md:block' />
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function CacheHitRateCardFallback() {
+  return (
+    <div className='overflow-hidden rounded-lg border'>
+      <div className='flex flex-col gap-3 border-b px-4 py-3 sm:flex-row sm:items-start sm:justify-between sm:px-5 sm:py-4'>
+        <div>
+          <Skeleton className='h-4 w-28' />
+          <Skeleton className='mt-2 h-8 w-32 sm:h-9 sm:w-36' />
+        </div>
+        <Skeleton className='h-12 w-36 rounded-lg' />
+      </div>
+      <div className='grid grid-cols-2 divide-x divide-y sm:grid-cols-4 sm:divide-y-0'>
+        {['input', 'output', 'hit', 'write'].map((key) => (
+          <div key={key} className='px-3 py-2.5 sm:px-5 sm:py-3'>
+            <Skeleton className='h-4 w-20' />
+            <Skeleton className='mt-2 h-6 w-20' />
           </div>
         ))}
       </div>
@@ -355,14 +383,19 @@ export function Dashboard() {
                   />
                 </Suspense>
               </FadeIn>
+              <FadeIn delay={0.05}>
+                <Suspense fallback={<CacheHitRateCardFallback />}>
+                  <LazyCacheHitRateCard filters={modelFilters} />
+                </Suspense>
+              </FadeIn>
               {isAdmin && (
-                <FadeIn delay={0.05}>
+                <FadeIn delay={0.1}>
                   <Suspense fallback={<PerformanceOverviewFallback />}>
                     <LazyPerformanceOverview />
                   </Suspense>
                 </FadeIn>
               )}
-              <FadeIn delay={0.1}>
+              <FadeIn delay={0.15}>
                 <Suspense fallback={<ModelChartsFallback />}>
                   <LazyConsumptionDistributionChart
                     data={modelData}
@@ -376,7 +409,7 @@ export function Dashboard() {
                   />
                 </Suspense>
               </FadeIn>
-              <FadeIn delay={0.15}>
+              <FadeIn delay={0.2}>
                 <Suspense fallback={<ModelChartsFallback />}>
                   <LazyModelCharts
                     data={modelData}
