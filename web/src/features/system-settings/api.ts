@@ -21,6 +21,9 @@ import { api } from '@/lib/api'
 import type {
   ConfirmPaymentComplianceResponse,
   FetchUpstreamRatiosRequest,
+  NarraForkPolicy,
+  NarraForkPolicyPatch,
+  NarraForkPreview,
   LogCleanupTask,
   SystemOptionsResponse,
   SystemTaskListResponse,
@@ -103,5 +106,55 @@ export async function fetchUpstreamRatios(request: FetchUpstreamRatiosRequest) {
     '/api/ratio_sync/fetch',
     request
   )
+  return res.data
+}
+
+export async function getNarraForkPolicies(scopeType?: 'group' | 'user') {
+  const res = await api.get<{
+    success: boolean
+    message: string
+    data: NarraForkPolicy[]
+  }>('/api/option/narrafork/policies', {
+    params: scopeType ? { scope_type: scopeType } : undefined,
+  })
+  return res.data
+}
+
+export async function updateNarraForkPolicy(
+  scopeType: 'group' | 'user',
+  scopeKey: string,
+  config: NarraForkPolicyPatch
+) {
+  const res = await api.put('/api/option/narrafork/policies', {
+    scope_type: scopeType,
+    scope_key: scopeKey,
+    config,
+  })
+  return res.data
+}
+
+export async function deleteNarraForkPolicy(
+  scopeType: 'group' | 'user',
+  scopeKey: string
+) {
+  const res = await api.delete(
+    `/api/option/narrafork/policies/${scopeType}/${encodeURIComponent(scopeKey)}`
+  )
+  return res.data
+}
+
+export async function previewNarraForkEvent(config: NarraForkPolicyPatch) {
+  const res = await api.post<{
+    success: boolean
+    message: string
+    data: NarraForkPreview
+  }>('/api/option/narrafork/preview', { config })
+  return res.data
+}
+
+export async function sendNarraForkTestEvent(config: NarraForkPolicyPatch) {
+  const res = await api.post<string>('/api/option/narrafork/test', { config }, {
+    responseType: 'text',
+  })
   return res.data
 }

@@ -223,6 +223,40 @@ func TestOaiChatToResponsesStreamHandlerConvertsSSEOrderAndUsage(t *testing.T) {
 	)
 }
 
+func TestOaiResponsesToChatStreamHandlerWritesQuotaEventBeforeDone(t *testing.T) {
+	oldMode := gin.Mode()
+	gin.SetMode(gin.TestMode)
+	t.Cleanup(func() { gin.SetMode(oldMode) })
+
+	oldTimeout := constant.StreamingTimeout
+	constant.StreamingTimeout = 30
+	t.Cleanup(func() { constant.StreamingTimeout = oldTimeout })
+
+	body := strings.Join([]string{
+		`data: {"type":"response.created","response":{"id":"resp_quota","model":"gpt-test","created_at":1710000000}}`,
+		`data: {"type":"response.output_text.delta","delta":"hello"}`,
+		`data: {"type":"response.completed","response":{"status":"completed","usage":{"input_tokens":2,"output_tokens":3,"total_tokens":5}}}`,
+		`data: [DONE]`,
+		``,
+	}, "\n")
+
+	c, recorder, resp, info := newResponsesChatTestContext(t, body, true)
+	info.NarraForkQuotaEvent = relaycommon.NarraForkQuotaEventConfig{
+		Activated:          true,
+		BalanceSource:      "custom",
+		CustomQuotaBalance: "custom-balance",
+	}
+
+	usage, err := OaiResponsesToChatStreamHandler(c, info, resp)
+	require.Nil(t, err)
+	require.NotNil(t, usage)
+	require.Equal(t, 5, usage.TotalTokens)
+
+	got := recorder.Body.String()
+	require.Equal(t, 1, strings.Count(got, "event: quotaBalanceEvent\n"))
+	requireOrderedSubstrings(t, got, `"content":"hello"`, "event: quotaBalanceEvent\n", "data: [DONE]")
+}
+
 func requireOrderedSubstrings(t *testing.T, s string, parts ...string) {
 	t.Helper()
 

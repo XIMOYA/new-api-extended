@@ -23,6 +23,55 @@ export type SystemOption = {
 
 export type SystemOptionKey = string
 
+export type NarraForkPolicyPatch = {
+  enabled?: boolean
+  activation_mode?: 'never' | 'header_only' | 'user_agent_only' | 'header_or_user_agent' | 'always'
+  balance_source?: 'effective' | 'user_quota' | 'token_quota' | 'custom'
+  include_detailed?: boolean
+  duplicate_policy?: 'skip' | 'replace' | 'always'
+  expose_extra?: boolean
+  token_display_mode?: 'exact' | 'compact'
+  cache_hit_rate_scope?: 'request' | 'today' | 'recent_days'
+  cache_hit_rate_days?: number
+  show_balance?: boolean
+  show_request_quota?: boolean
+  show_today_quota?: boolean
+  show_today_tokens?: boolean
+  show_month_quota?: boolean
+  show_month_tokens?: boolean
+  show_total_quota?: boolean
+  show_used_quota?: boolean
+  show_input_tokens?: boolean
+  show_output_tokens?: boolean
+  show_total_tokens?: boolean
+  show_cache_hit_tokens?: boolean
+  show_cache_hit_rate?: boolean
+  show_reasoning_tokens?: boolean
+  show_latency?: boolean
+  show_ttft?: boolean
+  show_request_id?: boolean
+  show_retry_count?: boolean
+  show_model?: boolean
+  show_billing_source?: boolean
+  show_unavailable_fields?: boolean
+  detail_template?: string
+  custom_quota_balance?: string
+  custom_detailed_quota_balance?: string
+}
+
+export type NarraForkPolicy = {
+  scope_type: 'group' | 'user'
+  scope_key: string
+  config: NarraForkPolicyPatch
+  updated_at: number
+}
+
+export type NarraForkPreview = {
+  eventName: string
+  payload: Record<string, unknown>
+  sse: string
+}
+
 export type SystemOptionsResponse = {
   success: boolean
   message: string
@@ -188,6 +237,48 @@ export type ContentSettings = {
 }
 
 export type ModelSettings = {
+  'narrafork_setting.enabled': boolean
+  'narrafork_setting.activation_mode':
+    | 'never'
+    | 'header_only'
+    | 'user_agent_only'
+    | 'header_or_user_agent'
+    | 'always'
+  'narrafork_setting.balance_source':
+    | 'effective'
+    | 'user_quota'
+    | 'token_quota'
+    | 'custom'
+  'narrafork_setting.include_detailed': boolean
+  'narrafork_setting.duplicate_policy': 'skip' | 'replace' | 'always'
+  'narrafork_setting.expose_extra': boolean
+  'narrafork_setting.token_display_mode': 'exact' | 'compact'
+  'narrafork_setting.cache_hit_rate_scope': 'request' | 'today' | 'recent_days'
+  'narrafork_setting.cache_hit_rate_days': number
+  'narrafork_setting.show_balance': boolean
+  'narrafork_setting.show_request_quota': boolean
+  'narrafork_setting.show_today_quota': boolean
+  'narrafork_setting.show_today_tokens': boolean
+  'narrafork_setting.show_month_quota': boolean
+  'narrafork_setting.show_month_tokens': boolean
+  'narrafork_setting.show_total_quota': boolean
+  'narrafork_setting.show_used_quota': boolean
+  'narrafork_setting.show_input_tokens': boolean
+  'narrafork_setting.show_output_tokens': boolean
+  'narrafork_setting.show_total_tokens': boolean
+  'narrafork_setting.show_cache_hit_tokens': boolean
+  'narrafork_setting.show_cache_hit_rate': boolean
+  'narrafork_setting.show_reasoning_tokens': boolean
+  'narrafork_setting.show_latency': boolean
+  'narrafork_setting.show_ttft': boolean
+  'narrafork_setting.show_request_id': boolean
+  'narrafork_setting.show_retry_count': boolean
+  'narrafork_setting.show_model': boolean
+  'narrafork_setting.show_billing_source': boolean
+  'narrafork_setting.show_unavailable_fields': boolean
+  'narrafork_setting.detail_template': string
+  'narrafork_setting.custom_quota_balance': string
+  'narrafork_setting.custom_detailed_quota_balance': string
   'global.pass_through_request_enabled': boolean
   'global.thinking_model_blacklist': string
   'global.chat_completions_to_responses_policy': string

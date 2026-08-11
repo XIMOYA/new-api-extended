@@ -203,6 +203,7 @@ func OaiResponsesToChatStreamHandler(c *gin.Context, info *relaycommon.RelayInfo
 		return nil, types.NewOpenAIError(err, types.ErrorCodeBadResponse, http.StatusInternalServerError)
 	}
 	streamErr := (*types.NewAPIError)(nil)
+	isFinalizing := false
 
 	if info.RelayFormat == types.RelayFormatClaude && info.ClaudeConvertInfo == nil {
 		info.ClaudeConvertInfo = &relaycommon.ClaudeConvertInfo{LastMessagesType: relaycommon.LastMessageTypeNone}
@@ -243,6 +244,11 @@ func OaiResponsesToChatStreamHandler(c *gin.Context, info *relaycommon.RelayInfo
 			}
 			return true
 		case dto.ClaudeResponse:
+			if isFinalizing && value.Type == "message_stop" {
+				if err := helper.WriteNarraForkQuotaEvent(c, info, state.Usage()); err != nil {
+					logger.LogError(c, "failed to write NarraFork quota event: "+err.Error())
+				}
+			}
 			if err := helper.ClaudeData(c, value); err != nil {
 				streamErr = types.NewOpenAIError(err, types.ErrorCodeBadResponse, http.StatusInternalServerError)
 				return false
@@ -251,6 +257,11 @@ func OaiResponsesToChatStreamHandler(c *gin.Context, info *relaycommon.RelayInfo
 		case *dto.ClaudeResponse:
 			if value == nil {
 				return true
+			}
+			if isFinalizing && value.Type == "message_stop" {
+				if err := helper.WriteNarraForkQuotaEvent(c, info, state.Usage()); err != nil {
+					logger.LogError(c, "failed to write NarraFork quota event: "+err.Error())
+				}
 			}
 			if err := helper.ClaudeData(c, *value); err != nil {
 				streamErr = types.NewOpenAIError(err, types.ErrorCodeBadResponse, http.StatusInternalServerError)
@@ -324,6 +335,7 @@ func OaiResponsesToChatStreamHandler(c *gin.Context, info *relaycommon.RelayInfo
 	if err != nil {
 		return nil, types.NewOpenAIError(err, types.ErrorCodeBadResponse, http.StatusInternalServerError)
 	}
+	isFinalizing = true
 	for _, result := range finalResults {
 		if !sendStreamResult(result) {
 			return nil, streamErr
@@ -333,6 +345,9 @@ func OaiResponsesToChatStreamHandler(c *gin.Context, info *relaycommon.RelayInfo
 		if err := helper.ObjectData(c, helper.GenerateFinalUsageResponse(responseId, createAt, info.UpstreamModelName, *usage)); err != nil {
 			return nil, types.NewOpenAIError(err, types.ErrorCodeBadResponse, http.StatusInternalServerError)
 		}
+	}
+	if err := helper.WriteNarraForkQuotaEvent(c, info, usage); err != nil {
+		logger.LogError(c, "failed to write NarraFork quota event: "+err.Error())
 	}
 
 	if info.RelayFormat == types.RelayFormatOpenAI {

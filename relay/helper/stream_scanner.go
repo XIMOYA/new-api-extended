@@ -33,6 +33,11 @@ const (
 	streamWriteTimeout = 30 * time.Second
 )
 
+type streamFrame struct {
+	eventName string
+	data      string
+}
+
 func getScannerBufferSize() int {
 	if constant.StreamScannerMaxBufferMB > 0 {
 		return constant.StreamScannerMaxBufferMB << 20
@@ -196,7 +201,7 @@ func StreamScannerHandler(c *gin.Context, resp *http.Response, info *relaycommon
 		})
 	}
 
-	dataChan := make(chan string, 10)
+	dataChan := make(chan streamFrame, 10)
 
 	wg.Add(1)
 	gopool.Go(func() {
@@ -209,13 +214,28 @@ func StreamScannerHandler(c *gin.Context, resp *http.Response, info *relaycommon
 			wg.Done()
 		}()
 		sr := newStreamResult(info.StreamStatus)
-		for data := range dataChan {
+		for frame := range dataChan {
 			sr.reset()
+			sr.setEventName(frame.eventName)
+			if frame.eventName == relaycommon.NarraForkQuotaEventName {
+				func() {
+					writeMutex.Lock()
+					defer writeMutex.Unlock()
+					ExtendWriteDeadline(c)
+					if err := ForwardNarraForkQuotaEvent(c, info, frame.data); err != nil {
+						sr.Stop(err)
+					}
+				}()
+				if sr.IsStopped() {
+					return
+				}
+				continue
+			}
 			func() {
 				writeMutex.Lock()
 				defer writeMutex.Unlock()
 				ExtendWriteDeadline(c)
-				dataHandler(data, sr)
+				dataHandler(frame.data, sr)
 			}()
 			if sr.IsStopped() {
 				return
@@ -237,6 +257,7 @@ func StreamScannerHandler(c *gin.Context, resp *http.Response, info *relaycommon
 			wg.Done()
 		}()
 
+		currentEventName := ""
 		for scanner.Scan() {
 			// 检查是否需要停止
 			select {
@@ -248,34 +269,43 @@ func StreamScannerHandler(c *gin.Context, resp *http.Response, info *relaycommon
 			}
 
 			ticker.Reset(streamingTimeout)
-			data := scanner.Text()
-			logger.LogDebug(c, "stream scanner data: %s", data)
+			line := scanner.Text()
+			logger.LogDebug(c, "stream scanner data: %s", line)
 
-			if len(data) < 6 {
+			if strings.HasPrefix(line, "event:") {
+				currentEventName = strings.TrimSpace(strings.TrimPrefix(line, "event:"))
 				continue
 			}
-			if data[:5] != "data:" && data[:6] != "[DONE]" {
+			if strings.HasPrefix(line, "[DONE]") {
+				info.StreamStatus.SetEndReason(relaycommon.StreamEndReasonDone, nil)
+				logger.LogDebug(c, "received [DONE], stopping scanner")
+				return
+			}
+			if !strings.HasPrefix(line, "data:") {
 				continue
 			}
-			data = data[5:]
-			data = strings.TrimSpace(data)
+
+			data := strings.TrimSpace(line[5:])
 			if data == "" {
 				continue
 			}
-			if !strings.HasPrefix(data, "[DONE]") {
-				info.SetFirstResponseTime()
-				info.ReceivedResponseCount++
-
-				select {
-				case dataChan <- data:
-				case <-ctx.Done():
-					return
-				case <-stopChan:
-					return
-				}
-			} else {
+			if strings.HasPrefix(data, "[DONE]") {
 				info.StreamStatus.SetEndReason(relaycommon.StreamEndReasonDone, nil)
 				logger.LogDebug(c, "received [DONE], stopping scanner")
+				return
+			}
+
+			if currentEventName != relaycommon.NarraForkQuotaEventName {
+				info.SetFirstResponseTime()
+				info.ReceivedResponseCount++
+			}
+			frame := streamFrame{eventName: currentEventName, data: data}
+			currentEventName = ""
+			select {
+			case dataChan <- frame:
+			case <-ctx.Done():
+				return
+			case <-stopChan:
 				return
 			}
 		}

@@ -394,6 +394,34 @@ func usageSemanticFromUsage(relayInfo *relaycommon.RelayInfo, usage *dto.Usage) 
 	return "openai"
 }
 
+func calculateTextQuotaForSettlement(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, usage *dto.Usage) (textQuotaSummary, *dto.Usage) {
+	billingUsage := effectiveBillingUsage(usage)
+	summary := calculateTextQuotaSummary(ctx, relayInfo, billingUsage)
+	if usage == nil {
+		return summary, billingUsage
+	}
+
+	var tieredUsedVars map[string]bool
+	if snap := relayInfo.TieredBillingSnapshot; snap != nil {
+		tieredUsedVars = billingexpr.UsedVars(snap.ExprString)
+	}
+	tieredOk, tieredQuota, tieredResult := TryTieredSettle(relayInfo, BuildTieredTokenParams(billingUsage, summary.IsClaudeUsageSemantic, tieredUsedVars))
+	if tieredOk {
+		summary.Quota = composeTieredTextQuota(relayInfo, summary, tieredQuota, tieredResult)
+	}
+	return summary, billingUsage
+}
+
+// CalculateTextConsumeQuota calculates the same quota that PostTextConsumeQuota
+// will settle, without mutating wallet, subscription, or token balances.
+func CalculateTextConsumeQuota(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, usage *dto.Usage) int {
+	if relayInfo == nil {
+		return 0
+	}
+	summary, _ := calculateTextQuotaForSettlement(ctx, relayInfo, usage)
+	return summary.Quota
+}
+
 func PostTextConsumeQuota(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, usage *dto.Usage, extraContent []string) {
 	originUsage := usage
 	billingUsage := effectiveBillingUsage(usage)

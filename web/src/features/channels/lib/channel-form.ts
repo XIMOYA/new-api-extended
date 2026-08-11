@@ -24,7 +24,13 @@ import {
   ERROR_MESSAGES,
   MODEL_FETCHABLE_TYPES,
 } from '../constants'
-import type { Channel } from '../types'
+import type {
+  Channel,
+  NarraForkActivationMode,
+  NarraForkBalanceSource,
+  NarraForkDuplicatePolicy,
+  NarraForkOverrideBoolean,
+} from '../types'
 import {
   CHANNEL_TYPE_ADVANCED_CUSTOM,
   advancedCustomConfigUsesRelativeUpstreamPath,
@@ -279,6 +285,36 @@ export const channelFormSchema = z
     upstream_model_update_check_enabled: z.boolean().optional(),
     upstream_model_update_auto_sync_enabled: z.boolean().optional(),
     upstream_model_update_ignored_models: z.string().optional(),
+    // NarraFork quota event settings (stored in settings JSON)
+    narrafork_enabled: z.enum(['inherit', 'true', 'false']),
+    narrafork_activation_mode: z.enum([
+      'inherit',
+      'never',
+      'header_only',
+      'user_agent_only',
+      'header_or_user_agent',
+      'always',
+    ]),
+    narrafork_balance_source: z.enum([
+      'inherit',
+      'effective',
+      'user_quota',
+      'token_quota',
+      'custom',
+    ]),
+    narrafork_include_detailed: z.enum(['inherit', 'true', 'false']),
+    narrafork_duplicate_policy: z.enum([
+      'inherit',
+      'skip',
+      'replace',
+      'always',
+    ]),
+    narrafork_expose_extra: z.enum(['inherit', 'true', 'false']),
+    narrafork_policy_json: z
+      .string()
+      .refine(isOptionalJsonObject, ERROR_MESSAGES.INVALID_JSON),
+    narrafork_custom_quota_balance: z.string(),
+    narrafork_custom_detailed_quota_balance: z.string(),
   })
   .superRefine((data, ctx) => {
     if (
@@ -450,12 +486,39 @@ export const CHANNEL_FORM_DEFAULT_VALUES: ChannelFormValues = {
   upstream_model_update_check_enabled: false,
   upstream_model_update_auto_sync_enabled: false,
   upstream_model_update_ignored_models: '',
+  // NarraFork quota event settings
+  narrafork_enabled: 'inherit',
+  narrafork_activation_mode: 'inherit',
+  narrafork_balance_source: 'inherit',
+  narrafork_include_detailed: 'inherit',
+  narrafork_duplicate_policy: 'inherit',
+  narrafork_expose_extra: 'inherit',
+  narrafork_policy_json: '{}',
+  narrafork_custom_quota_balance: '',
+  narrafork_custom_detailed_quota_balance: '',
   advanced_custom: '',
 }
 
 // ============================================================================
 // Transform Functions
 // ============================================================================
+
+function parseNarraForkOverrideBoolean(
+  value: unknown
+): NarraForkOverrideBoolean {
+  if (value === true) return 'true'
+  if (value === false) return 'false'
+  return 'inherit'
+}
+
+function parseNarraForkOverrideString<T extends string>(
+  value: unknown,
+  allowed: readonly T[]
+): 'inherit' | T {
+  return typeof value === 'string' && allowed.includes(value as T)
+    ? (value as T)
+    : 'inherit'
+}
 
 /**
  * Transform Channel from API to Form default values
@@ -487,8 +550,7 @@ export function transformChannelToFormDefaults(
         thinking_to_content: parsed.thinking_to_content || false,
         proxy: parsed.proxy || '',
         http_protocol: protocol,
-        http2_connection_shards:
-          protocol === HTTP_PROTOCOL_HTTP1 ? 1 : shards,
+        http2_connection_shards: protocol === HTTP_PROTOCOL_HTTP1 ? 1 : shards,
         pass_through_body_enabled: parsed.pass_through_body_enabled || false,
         system_prompt: parsed.system_prompt || '',
         system_prompt_override: parsed.system_prompt_override || false,
@@ -516,10 +578,60 @@ export function transformChannelToFormDefaults(
   let upstreamModelUpdateAutoSyncEnabled = false
   let upstreamModelUpdateIgnoredModels = ''
   let advancedCustom = ''
+  let narraforkEnabled: NarraForkOverrideBoolean = 'inherit'
+  let narraforkActivationMode: 'inherit' | NarraForkActivationMode = 'inherit'
+  let narraforkBalanceSource: 'inherit' | NarraForkBalanceSource = 'inherit'
+  let narraforkIncludeDetailed: NarraForkOverrideBoolean = 'inherit'
+  let narraforkDuplicatePolicy: 'inherit' | NarraForkDuplicatePolicy = 'inherit'
+  let narraforkExposeExtra: NarraForkOverrideBoolean = 'inherit'
+  let narraforkPolicyJSON = '{}'
+  let narraforkCustomQuotaBalance = ''
+  let narraforkCustomDetailedQuotaBalance = ''
 
   if (channel.settings) {
     try {
       const parsed = JSON.parse(channel.settings)
+      const narrafork = parsed.narrafork
+      if (
+        narrafork &&
+        typeof narrafork === 'object' &&
+        !Array.isArray(narrafork)
+      ) {
+        narraforkEnabled = parseNarraForkOverrideBoolean(narrafork.enabled)
+        narraforkActivationMode = parseNarraForkOverrideString(
+          narrafork.activation_mode,
+          [
+            'never',
+            'header_only',
+            'user_agent_only',
+            'header_or_user_agent',
+            'always',
+          ] as const
+        )
+        narraforkBalanceSource = parseNarraForkOverrideString(
+          narrafork.balance_source,
+          ['effective', 'user_quota', 'token_quota', 'custom'] as const
+        )
+        narraforkIncludeDetailed = parseNarraForkOverrideBoolean(
+          narrafork.include_detailed
+        )
+        narraforkDuplicatePolicy = parseNarraForkOverrideString(
+          narrafork.duplicate_policy,
+          ['skip', 'replace', 'always'] as const
+        )
+        narraforkExposeExtra = parseNarraForkOverrideBoolean(
+          narrafork.expose_extra
+        )
+        narraforkPolicyJSON = JSON.stringify(narrafork, null, 2)
+        narraforkCustomQuotaBalance =
+          typeof narrafork.custom_quota_balance === 'string'
+            ? narrafork.custom_quota_balance
+            : ''
+        narraforkCustomDetailedQuotaBalance =
+          typeof narrafork.custom_detailed_quota_balance === 'string'
+            ? narrafork.custom_detailed_quota_balance
+            : ''
+      }
       vertexKeyType = parsed.vertex_key_type || 'json'
       azureResponsesVersion = parsed.azure_responses_version || ''
       isEnterpriseAccount = parsed.openrouter_enterprise === true
@@ -594,6 +706,16 @@ export function transformChannelToFormDefaults(
     upstream_model_update_check_enabled: upstreamModelUpdateCheckEnabled,
     upstream_model_update_auto_sync_enabled: upstreamModelUpdateAutoSyncEnabled,
     upstream_model_update_ignored_models: upstreamModelUpdateIgnoredModels,
+    narrafork_enabled: narraforkEnabled,
+    narrafork_activation_mode: narraforkActivationMode,
+    narrafork_balance_source: narraforkBalanceSource,
+    narrafork_include_detailed: narraforkIncludeDetailed,
+    narrafork_duplicate_policy: narraforkDuplicatePolicy,
+    narrafork_expose_extra: narraforkExposeExtra,
+    narrafork_policy_json: narraforkPolicyJSON,
+    narrafork_custom_quota_balance: narraforkCustomQuotaBalance,
+    narrafork_custom_detailed_quota_balance:
+      narraforkCustomDetailedQuotaBalance,
     advanced_custom: advancedCustom,
   }
 }
@@ -743,6 +865,68 @@ function buildSettingsJSON(formData: ChannelFormValues): string {
     if (typeof settingsObj.upstream_model_update_last_check_time !== 'number') {
       settingsObj.upstream_model_update_last_check_time = 0
     }
+  }
+
+  let narraforkSettings = isJsonObjectValue(settingsObj.narrafork)
+    ? { ...settingsObj.narrafork }
+    : {}
+  if (formData.narrafork_policy_json.trim()) {
+    try {
+      const parsedPolicy = JSON.parse(formData.narrafork_policy_json)
+      if (isJsonObjectValue(parsedPolicy)) {
+        narraforkSettings = { ...narraforkSettings, ...parsedPolicy }
+      }
+    } catch {
+      // The schema reports malformed JSON before this transform is used.
+    }
+  }
+  if (formData.narrafork_enabled === 'inherit') {
+    delete narraforkSettings.enabled
+  } else {
+    narraforkSettings.enabled = formData.narrafork_enabled === 'true'
+  }
+  if (formData.narrafork_activation_mode === 'inherit') {
+    delete narraforkSettings.activation_mode
+  } else {
+    narraforkSettings.activation_mode = formData.narrafork_activation_mode
+  }
+  if (formData.narrafork_balance_source === 'inherit') {
+    delete narraforkSettings.balance_source
+  } else {
+    narraforkSettings.balance_source = formData.narrafork_balance_source
+  }
+  if (formData.narrafork_include_detailed === 'inherit') {
+    delete narraforkSettings.include_detailed
+  } else {
+    narraforkSettings.include_detailed =
+      formData.narrafork_include_detailed === 'true'
+  }
+  if (formData.narrafork_duplicate_policy === 'inherit') {
+    delete narraforkSettings.duplicate_policy
+  } else {
+    narraforkSettings.duplicate_policy = formData.narrafork_duplicate_policy
+  }
+  if (formData.narrafork_expose_extra === 'inherit') {
+    delete narraforkSettings.expose_extra
+  } else {
+    narraforkSettings.expose_extra = formData.narrafork_expose_extra === 'true'
+  }
+  if (formData.narrafork_custom_quota_balance.trim()) {
+    narraforkSettings.custom_quota_balance =
+      formData.narrafork_custom_quota_balance
+  } else {
+    delete narraforkSettings.custom_quota_balance
+  }
+  if (formData.narrafork_custom_detailed_quota_balance.trim()) {
+    narraforkSettings.custom_detailed_quota_balance =
+      formData.narrafork_custom_detailed_quota_balance
+  } else {
+    delete narraforkSettings.custom_detailed_quota_balance
+  }
+  if (Object.keys(narraforkSettings).length > 0) {
+    settingsObj.narrafork = narraforkSettings
+  } else {
+    delete settingsObj.narrafork
   }
 
   if (formData.type === CHANNEL_TYPE_ADVANCED_CUSTOM) {

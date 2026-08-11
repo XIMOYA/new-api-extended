@@ -94,7 +94,6 @@ func OaiResponsesStreamHandler(c *gin.Context, info *relaycommon.RelayInfo, resp
 			sr.Error(err)
 			return
 		}
-		sendResponsesStreamData(c, streamResponse, data)
 		switch streamResponse.Type {
 		case "response.completed", "response.done":
 			if streamResponse.Response != nil {
@@ -156,6 +155,17 @@ func OaiResponsesStreamHandler(c *gin.Context, info *relaycommon.RelayInfo, resp
 				}
 			}
 		}
+
+		if streamResponse.Type == "response.completed" || streamResponse.Type == "response.done" {
+			eventUsage := usage
+			if eventUsage.CompletionTokens == 0 && responseTextBuilder.Len() > 0 {
+				eventUsage = service.ResponseText2Usage(c, responseTextBuilder.String(), info.UpstreamModelName, info.GetEstimatePromptTokens())
+			}
+			if err := helper.WriteNarraForkQuotaEvent(c, info, eventUsage); err != nil {
+				logger.LogError(c, "failed to write NarraFork quota event: "+err.Error())
+			}
+		}
+		sendResponsesStreamData(c, streamResponse, data)
 	})
 
 	if usage.CompletionTokens == 0 {
@@ -173,6 +183,13 @@ func OaiResponsesStreamHandler(c *gin.Context, info *relaycommon.RelayInfo, resp
 	}
 
 	usage.TotalTokens = usage.PromptTokens + usage.CompletionTokens
+
+	// Some Responses-compatible upstreams close the SSE stream with EOF without
+	// sending response.completed/response.done. The event writer is idempotent
+	// and checks the final stream status, so this only fills that terminal gap.
+	if err := helper.WriteNarraForkQuotaEvent(c, info, usage); err != nil {
+		logger.LogError(c, "failed to write NarraFork quota event after Responses stream: "+err.Error())
+	}
 
 	return usage, nil
 }

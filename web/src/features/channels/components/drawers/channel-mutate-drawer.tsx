@@ -189,6 +189,7 @@ import {
   ChannelBasicSection,
   ChannelEditorLoadingState,
   ChannelModelsSection,
+  NarraForkQuotaEventSection,
 } from './sections'
 
 type ChannelMutateDrawerProps = {
@@ -258,6 +259,7 @@ const ADVANCED_SETTINGS_SECTION_IDS = {
   overrideRules: 'channel-section-advanced-override-rules',
   extraSettings: 'channel-section-advanced-extra-settings',
   fieldPassthrough: 'channel-section-advanced-field-passthrough',
+  narraforkQuotaEvent: 'channel-section-advanced-narrafork-quota-event',
   upstreamModelDetection: 'channel-section-advanced-upstream-model-detection',
 } as const
 const ADVANCED_SETTINGS_CHILD_SECTION_IDS: string[] = Object.values(
@@ -296,6 +298,14 @@ const SENSITIVE_FORM_FIELDS = [
   'allow_inference_geo',
   'allow_speed',
   'claude_beta_query',
+  'narrafork_enabled',
+  'narrafork_activation_mode',
+  'narrafork_balance_source',
+  'narrafork_include_detailed',
+  'narrafork_duplicate_policy',
+  'narrafork_expose_extra',
+  'narrafork_custom_quota_balance',
+  'narrafork_custom_detailed_quota_balance',
   'disable_task_polling_sleep',
   'upstream_model_update_check_enabled',
   'upstream_model_update_auto_sync_enabled',
@@ -345,6 +355,14 @@ function hasAdvancedSettingsValues(values: ChannelFormValues): boolean {
     (values.http2_connection_shards != null &&
       values.http2_connection_shards > 1) ||
     values.claude_beta_query ||
+    values.narrafork_enabled !== 'inherit' ||
+    values.narrafork_activation_mode !== 'inherit' ||
+    values.narrafork_balance_source !== 'inherit' ||
+    values.narrafork_include_detailed !== 'inherit' ||
+    values.narrafork_duplicate_policy !== 'inherit' ||
+    values.narrafork_expose_extra !== 'inherit' ||
+    values.narrafork_custom_quota_balance?.trim() ||
+    values.narrafork_custom_detailed_quota_balance?.trim() ||
     values.upstream_model_update_check_enabled ||
     values.upstream_model_update_auto_sync_enabled ||
     values.upstream_model_update_ignored_models?.trim()
@@ -761,6 +779,22 @@ export function ChannelMutateDrawer({
   const currentAllowInferenceGeo = form.watch('allow_inference_geo')
   const currentAllowSpeed = form.watch('allow_speed')
   const currentClaudeBetaQuery = form.watch('claude_beta_query')
+  const currentNarraForkEnabled = form.watch('narrafork_enabled')
+  const currentNarraForkActivationMode = form.watch('narrafork_activation_mode')
+  const currentNarraForkBalanceSource = form.watch('narrafork_balance_source')
+  const currentNarraForkIncludeDetailed = form.watch(
+    'narrafork_include_detailed'
+  )
+  const currentNarraForkDuplicatePolicy = form.watch(
+    'narrafork_duplicate_policy'
+  )
+  const currentNarraForkExposeExtra = form.watch('narrafork_expose_extra')
+  const currentNarraForkCustomQuotaBalance = form.watch(
+    'narrafork_custom_quota_balance'
+  )
+  const currentNarraForkCustomDetailedQuotaBalance = form.watch(
+    'narrafork_custom_detailed_quota_balance'
+  )
   const currentUpstreamModelUpdateAutoSyncEnabled = form.watch(
     'upstream_model_update_auto_sync_enabled'
   )
@@ -1047,12 +1081,23 @@ export function ChannelMutateDrawer({
     currentUpstreamModelUpdateAutoSyncEnabled ||
     currentUpstreamModelUpdateIgnoredModels?.trim()
   )
+  const narraforkQuotaEventConfigured = Boolean(
+    currentNarraForkEnabled !== 'inherit' ||
+    currentNarraForkActivationMode !== 'inherit' ||
+    currentNarraForkBalanceSource !== 'inherit' ||
+    currentNarraForkIncludeDetailed !== 'inherit' ||
+    currentNarraForkDuplicatePolicy !== 'inherit' ||
+    currentNarraForkExposeExtra !== 'inherit' ||
+    currentNarraForkCustomQuotaBalance?.trim() ||
+    currentNarraForkCustomDetailedQuotaBalance?.trim()
+  )
   const advancedConfigured = Boolean(
     routingStrategyConfigured ||
     internalNotesConfigured ||
     overrideRulesConfigured ||
     extraSettingsConfigured ||
     fieldPassthroughConfigured ||
+    narraforkQuotaEventConfigured ||
     upstreamModelDetectionConfigured
   )
   const advancedNavChildren: ChannelEditorNavChildItem[] = [
@@ -1075,6 +1120,11 @@ export function ChannelMutateDrawer({
       id: ADVANCED_SETTINGS_SECTION_IDS.extraSettings,
       title: t('Channel Extra Settings'),
       configured: extraSettingsConfigured,
+    },
+    {
+      id: ADVANCED_SETTINGS_SECTION_IDS.narraforkQuotaEvent,
+      title: t('NarraFork Quota Events'),
+      configured: narraforkQuotaEventConfigured,
     },
   ]
   if (currentType === 1 || currentType === 14 || currentType === 57) {
@@ -4233,9 +4283,7 @@ export function ChannelMutateDrawer({
                                         <SelectValue />
                                       </SelectTrigger>
                                     </FormControl>
-                                    <SelectContent
-                                      alignItemWithTrigger={false}
-                                    >
+                                    <SelectContent alignItemWithTrigger={false}>
                                       <SelectGroup>
                                         <SelectItem value='auto'>
                                           {t('Auto')}
@@ -4366,6 +4414,28 @@ export function ChannelMutateDrawer({
                                 </FormItem>
                               )}
                             />
+                          </fieldset>
+                        </div>
+
+                        <div
+                          id={ADVANCED_SETTINGS_SECTION_IDS.narraforkQuotaEvent}
+                          className={sideDrawerSectionClassName(
+                            configuredAdvancedSectionClassName(
+                              'scroll-mt-4',
+                              narraforkQuotaEventConfigured
+                            )
+                          )}
+                        >
+                          <CardHeading
+                            title={t('NarraFork Quota Events')}
+                            icon={<Sparkles className='h-4 w-4' />}
+                            iconTone='info'
+                          />
+                          <fieldset
+                            disabled={sensitiveLocked}
+                            className='disabled:opacity-60'
+                          >
+                            <NarraForkQuotaEventSection />
                           </fieldset>
                         </div>
 

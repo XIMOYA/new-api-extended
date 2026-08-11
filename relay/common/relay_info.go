@@ -102,6 +102,7 @@ type RelayInfo struct {
 	RequestHeaders         map[string]string
 	ShouldIncludeUsage     bool
 	DisablePing            bool // 是否禁止向下游发送自定义 Ping
+	NarraForkQuotaEvent    NarraForkQuotaEventConfig
 	ClientWs               *websocket.Conn
 	TargetWs               *websocket.Conn
 	InputAudioFormat       string
@@ -230,6 +231,18 @@ func (info *RelayInfo) InitChannelMeta(c *gin.Context) {
 	}
 
 	info.ChannelMeta = channelMeta
+	info.NarraForkQuotaEvent = ResolveNarraForkQuotaEvent(c, info)
+	if info.NarraForkQuotaEvent.Enabled && !info.NarraForkQuotaEvent.Activated {
+		headerMatched, userAgentMatched := NarraForkActivationMatches(c)
+		common.SysLog(fmt.Sprintf(
+			"NarraFork quota event not activated: mode=%s stream=%t relay_format=%s header_matched=%t user_agent_matched=%t",
+			info.NarraForkQuotaEvent.ActivationMode,
+			info.IsStream,
+			info.RelayFormat,
+			headerMatched,
+			userAgentMatched,
+		))
+	}
 
 	// Channel identity feeds the converter options snapshot (e.g.
 	// OpenRouterDialect); drop the cache so a cross-channel retry rebuilds it.

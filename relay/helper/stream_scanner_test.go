@@ -197,6 +197,55 @@ func TestStreamScannerHandler_SkipsNonDataLines(t *testing.T) {
 	assert.Equal(t, int64(100), count.Load())
 }
 
+func TestStreamScannerHandler_NarraForkQuotaEventForwarding(t *testing.T) {
+	t.Parallel()
+
+	body := `event: quotaBalanceEvent
+data: {"quotaBalance":"$1.23"}
+
+data: [DONE]
+`
+	recorder := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(recorder)
+	c.Request = httptest.NewRequest(http.MethodPost, "/v1/chat/completions", nil)
+	resp := &http.Response{Body: io.NopCloser(strings.NewReader(body))}
+	info := &relaycommon.RelayInfo{ChannelMeta: &relaycommon.ChannelMeta{}}
+	info.NarraForkQuotaEvent.Activated = true
+	info.NarraForkQuotaEvent.DuplicatePolicy = "skip"
+
+	var handled atomic.Int64
+	StreamScannerHandler(c, resp, info, func(data string, sr *StreamResult) {
+		handled.Add(1)
+	})
+
+	assert.Equal(t, int64(0), handled.Load())
+	assert.Contains(t, recorder.Body.String(), "event: quotaBalanceEvent\n")
+	assert.Contains(t, recorder.Body.String(), "data: {\"quotaBalance\":\"$1.23\"}\n")
+}
+
+func TestStreamScannerHandler_NarraForkQuotaEventSuppressed(t *testing.T) {
+	t.Parallel()
+
+	body := `event: quotaBalanceEvent
+data: {"quotaBalance":"$1.23"}
+
+data: [DONE]
+`
+	recorder := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(recorder)
+	c.Request = httptest.NewRequest(http.MethodPost, "/v1/chat/completions", nil)
+	resp := &http.Response{Body: io.NopCloser(strings.NewReader(body))}
+	info := &relaycommon.RelayInfo{ChannelMeta: &relaycommon.ChannelMeta{}}
+
+	var handled atomic.Int64
+	StreamScannerHandler(c, resp, info, func(data string, sr *StreamResult) {
+		handled.Add(1)
+	})
+
+	assert.Equal(t, int64(0), handled.Load())
+	assert.Empty(t, recorder.Body.String())
+}
+
 func TestStreamScannerHandler_DataWithExtraSpaces(t *testing.T) {
 	t.Parallel()
 

@@ -24,6 +24,7 @@ import { ClaudeSettingsCard } from './claude-settings-card'
 import { GeminiSettingsCard } from './gemini-settings-card'
 import { GlobalSettingsCard } from './global-settings-card'
 import { GrokSettingsCard } from './grok-settings-card'
+import { NarraForkSettingsCard } from './narrafork-settings-card'
 import { RoutingReliabilitySection } from './routing-reliability-section'
 
 function formatJsonForEditor(value: string, fallback: string) {
@@ -61,6 +62,79 @@ const MODELS_SECTIONS = [
             ping_interval_seconds:
               settings['general_setting.ping_interval_seconds'],
           },
+        }}
+      />
+    ),
+  },
+  {
+    id: 'narrafork',
+    titleKey: 'NarraFork Gateway Events',
+    build: (settings: ModelSettings) => (
+      <NarraForkSettingsCard
+        defaultValues={{
+          'narrafork_setting.enabled': settings['narrafork_setting.enabled'],
+          'narrafork_setting.activation_mode':
+            settings['narrafork_setting.activation_mode'],
+          'narrafork_setting.balance_source':
+            settings['narrafork_setting.balance_source'],
+          'narrafork_setting.include_detailed':
+            settings['narrafork_setting.include_detailed'],
+          'narrafork_setting.duplicate_policy':
+            settings['narrafork_setting.duplicate_policy'],
+          'narrafork_setting.expose_extra':
+            settings['narrafork_setting.expose_extra'],
+          'narrafork_setting.token_display_mode':
+            settings['narrafork_setting.token_display_mode'],
+          'narrafork_setting.cache_hit_rate_scope':
+            settings['narrafork_setting.cache_hit_rate_scope'],
+          'narrafork_setting.cache_hit_rate_days':
+            settings['narrafork_setting.cache_hit_rate_days'],
+          'narrafork_setting.show_balance':
+            settings['narrafork_setting.show_balance'],
+          'narrafork_setting.show_request_quota':
+            settings['narrafork_setting.show_request_quota'],
+          'narrafork_setting.show_today_quota':
+            settings['narrafork_setting.show_today_quota'],
+          'narrafork_setting.show_today_tokens':
+            settings['narrafork_setting.show_today_tokens'],
+          'narrafork_setting.show_month_quota':
+            settings['narrafork_setting.show_month_quota'],
+          'narrafork_setting.show_month_tokens':
+            settings['narrafork_setting.show_month_tokens'],
+          'narrafork_setting.show_total_quota':
+            settings['narrafork_setting.show_total_quota'],
+          'narrafork_setting.show_used_quota':
+            settings['narrafork_setting.show_used_quota'],
+          'narrafork_setting.show_input_tokens':
+            settings['narrafork_setting.show_input_tokens'],
+          'narrafork_setting.show_output_tokens':
+            settings['narrafork_setting.show_output_tokens'],
+          'narrafork_setting.show_total_tokens':
+            settings['narrafork_setting.show_total_tokens'],
+          'narrafork_setting.show_cache_hit_tokens':
+            settings['narrafork_setting.show_cache_hit_tokens'],
+          'narrafork_setting.show_cache_hit_rate':
+            settings['narrafork_setting.show_cache_hit_rate'],
+          'narrafork_setting.show_reasoning_tokens':
+            settings['narrafork_setting.show_reasoning_tokens'],
+          'narrafork_setting.show_latency':
+            settings['narrafork_setting.show_latency'],
+          'narrafork_setting.show_ttft': settings['narrafork_setting.show_ttft'],
+          'narrafork_setting.show_request_id':
+            settings['narrafork_setting.show_request_id'],
+          'narrafork_setting.show_retry_count':
+            settings['narrafork_setting.show_retry_count'],
+          'narrafork_setting.show_model': settings['narrafork_setting.show_model'],
+          'narrafork_setting.show_billing_source':
+            settings['narrafork_setting.show_billing_source'],
+          'narrafork_setting.show_unavailable_fields':
+            settings['narrafork_setting.show_unavailable_fields'],
+          'narrafork_setting.detail_template':
+            settings['narrafork_setting.detail_template'],
+          'narrafork_setting.custom_quota_balance':
+            settings['narrafork_setting.custom_quota_balance'],
+          'narrafork_setting.custom_detailed_quota_balance':
+            settings['narrafork_setting.custom_detailed_quota_balance'],
         }}
       />
     ),

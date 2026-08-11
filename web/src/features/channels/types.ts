@@ -90,6 +90,57 @@ export interface ChannelSettings {
   http2_connection_shards?: number
 }
 
+export type NarraForkOverrideBoolean = 'inherit' | 'true' | 'false'
+export type NarraForkActivationMode =
+  | 'never'
+  | 'header_only'
+  | 'user_agent_only'
+  | 'header_or_user_agent'
+  | 'always'
+export type NarraForkBalanceSource =
+  | 'effective'
+  | 'user_quota'
+  | 'token_quota'
+  | 'custom'
+export type NarraForkDuplicatePolicy = 'skip' | 'replace' | 'always'
+export type NarraForkTokenDisplayMode = 'exact' | 'compact'
+
+export interface NarraForkQuotaEventSettings {
+  enabled?: boolean
+  activation_mode?: NarraForkActivationMode
+  balance_source?: NarraForkBalanceSource
+  include_detailed?: boolean
+  duplicate_policy?: NarraForkDuplicatePolicy
+  expose_extra?: boolean
+  token_display_mode?: NarraForkTokenDisplayMode
+  cache_hit_rate_scope?: 'request' | 'today' | 'recent_days'
+  cache_hit_rate_days?: number
+  show_balance?: boolean
+  show_request_quota?: boolean
+  show_today_quota?: boolean
+  show_today_tokens?: boolean
+  show_month_quota?: boolean
+  show_month_tokens?: boolean
+  show_total_quota?: boolean
+  show_used_quota?: boolean
+  show_input_tokens?: boolean
+  show_output_tokens?: boolean
+  show_total_tokens?: boolean
+  show_cache_hit_tokens?: boolean
+  show_cache_hit_rate?: boolean
+  show_reasoning_tokens?: boolean
+  show_latency?: boolean
+  show_ttft?: boolean
+  show_request_id?: boolean
+  show_retry_count?: boolean
+  show_model?: boolean
+  show_billing_source?: boolean
+  show_unavailable_fields?: boolean
+  detail_template?: string
+  custom_quota_balance?: string
+  custom_detailed_quota_balance?: string
+}
+
 export interface ChannelOtherSettings {
   azure_responses_version?: string
   vertex_key_type?: 'json' | 'api_key'
@@ -102,6 +153,7 @@ export interface ChannelOtherSettings {
   allow_inference_geo?: boolean
   allow_speed?: boolean
   claude_beta_query?: boolean
+  narrafork?: NarraForkQuotaEventSettings
   disable_task_polling_sleep?: boolean
   upstream_model_update_check_enabled?: boolean
   upstream_model_update_auto_sync_enabled?: boolean

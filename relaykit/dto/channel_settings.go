@@ -65,26 +65,63 @@ const (
 	AwsKeyTypeApiKey AwsKeyType = "api_key"
 )
 
+type NarraForkQuotaEventSettings struct {
+	Enabled                    *bool   `json:"enabled,omitempty"`
+	ActivationMode             string  `json:"activation_mode,omitempty"`
+	BalanceSource              string  `json:"balance_source,omitempty"`
+	IncludeDetailed            *bool   `json:"include_detailed,omitempty"`
+	DuplicatePolicy            string  `json:"duplicate_policy,omitempty"`
+	ExposeExtra                *bool   `json:"expose_extra,omitempty"`
+	TokenDisplayMode           string  `json:"token_display_mode,omitempty"`
+	CacheHitRateScope          string  `json:"cache_hit_rate_scope,omitempty"`
+	CacheHitRateDays           *int    `json:"cache_hit_rate_days,omitempty"`
+	ShowBalance                *bool   `json:"show_balance,omitempty"`
+	ShowRequestQuota           *bool   `json:"show_request_quota,omitempty"`
+	ShowTodayQuota             *bool   `json:"show_today_quota,omitempty"`
+	ShowTodayTokens            *bool   `json:"show_today_tokens,omitempty"`
+	ShowMonthQuota             *bool   `json:"show_month_quota,omitempty"`
+	ShowMonthTokens            *bool   `json:"show_month_tokens,omitempty"`
+	ShowTotalQuota             *bool   `json:"show_total_quota,omitempty"`
+	ShowUsedQuota              *bool   `json:"show_used_quota,omitempty"`
+	ShowInputTokens            *bool   `json:"show_input_tokens,omitempty"`
+	ShowOutputTokens           *bool   `json:"show_output_tokens,omitempty"`
+	ShowTotalTokens            *bool   `json:"show_total_tokens,omitempty"`
+	ShowCacheHitTokens         *bool   `json:"show_cache_hit_tokens,omitempty"`
+	ShowCacheHitRate           *bool   `json:"show_cache_hit_rate,omitempty"`
+	ShowReasoningTokens        *bool   `json:"show_reasoning_tokens,omitempty"`
+	ShowLatency                *bool   `json:"show_latency,omitempty"`
+	ShowTTFT                   *bool   `json:"show_ttft,omitempty"`
+	ShowRequestID              *bool   `json:"show_request_id,omitempty"`
+	ShowRetryCount             *bool   `json:"show_retry_count,omitempty"`
+	ShowModel                  *bool   `json:"show_model,omitempty"`
+	ShowBillingSource          *bool   `json:"show_billing_source,omitempty"`
+	ShowUnavailableFields      *bool   `json:"show_unavailable_fields,omitempty"`
+	DetailTemplate             *string `json:"detail_template,omitempty"`
+	CustomQuotaBalance         *string `json:"custom_quota_balance,omitempty"`
+	CustomDetailedQuotaBalance *string `json:"custom_detailed_quota_balance,omitempty"`
+}
+
 type ChannelOtherSettings struct {
-	AzureResponsesVersion                 string                `json:"azure_responses_version,omitempty"`
-	VertexKeyType                         VertexKeyType         `json:"vertex_key_type,omitempty"` // "json" or "api_key"
-	OpenRouterEnterprise                  *bool                 `json:"openrouter_enterprise,omitempty"`
-	ClaudeBetaQuery                       bool                  `json:"claude_beta_query,omitempty"`          // Claude 渠道是否强制追加 ?beta=true
-	AllowServiceTier                      bool                  `json:"allow_service_tier,omitempty"`         // 是否允许 service_tier 透传（默认过滤以避免额外计费）
-	AllowInferenceGeo                     bool                  `json:"allow_inference_geo,omitempty"`        // 是否允许 inference_geo 透传（仅 Claude，默认过滤以满足数据驻留合规
-	AllowSpeed                            bool                  `json:"allow_speed,omitempty"`                // 是否允许 speed 透传（仅 Claude，默认过滤以避免意外切换推理速度模式）
-	AllowSafetyIdentifier                 bool                  `json:"allow_safety_identifier,omitempty"`    // 是否允许 safety_identifier 透传（默认过滤以保护用户隐私）
-	DisableStore                          bool                  `json:"disable_store,omitempty"`              // 是否禁用 store 透传（默认允许透传，禁用后可能导致 Codex 无法使用）
-	AllowIncludeObfuscation               bool                  `json:"allow_include_obfuscation,omitempty"`  // 是否允许 stream_options.include_obfuscation 透传（默认过滤以避免关闭流混淆保护）
-	DisableTaskPollingSleep               bool                  `json:"disable_task_polling_sleep,omitempty"` // 是否跳过异步任务轮询间隔
-	AwsKeyType                            AwsKeyType            `json:"aws_key_type,omitempty"`
-	UpstreamModelUpdateCheckEnabled       bool                  `json:"upstream_model_update_check_enabled,omitempty"`        // 是否检测上游模型更新
-	UpstreamModelUpdateAutoSyncEnabled    bool                  `json:"upstream_model_update_auto_sync_enabled,omitempty"`    // 是否自动同步上游模型更新
-	UpstreamModelUpdateLastCheckTime      int64                 `json:"upstream_model_update_last_check_time,omitempty"`      // 上次检测时间
-	UpstreamModelUpdateLastDetectedModels []string              `json:"upstream_model_update_last_detected_models,omitempty"` // 上次检测到的可加入模型
-	UpstreamModelUpdateLastRemovedModels  []string              `json:"upstream_model_update_last_removed_models,omitempty"`  // 上次检测到的可删除模型
-	UpstreamModelUpdateIgnoredModels      []string              `json:"upstream_model_update_ignored_models,omitempty"`       // 手动忽略的模型
-	AdvancedCustom                        *AdvancedCustomConfig `json:"advanced_custom,omitempty"`
+	AzureResponsesVersion                 string                       `json:"azure_responses_version,omitempty"`
+	VertexKeyType                         VertexKeyType                `json:"vertex_key_type,omitempty"`
+	OpenRouterEnterprise                  *bool                        `json:"openrouter_enterprise,omitempty"`
+	ClaudeBetaQuery                       bool                         `json:"claude_beta_query,omitempty"` // Claude 渠道是否强制追加 ?beta=true
+	NarraFork                             *NarraForkQuotaEventSettings `json:"narrafork,omitempty"`
+	AllowServiceTier                      bool                         `json:"allow_service_tier,omitempty"`         // 是否允许 service_tier 透传（默认过滤以避免额外计费）
+	AllowInferenceGeo                     bool                         `json:"allow_inference_geo,omitempty"`        // 是否允许 inference_geo 透传（仅 Claude，默认过滤以满足数据驻留合规
+	AllowSpeed                            bool                         `json:"allow_speed,omitempty"`                // 是否允许 speed 透传（仅 Claude，默认过滤以避免意外切换推理速度模式）
+	AllowSafetyIdentifier                 bool                         `json:"allow_safety_identifier,omitempty"`    // 是否允许 safety_identifier 透传（默认过滤以保护用户隐私）
+	DisableStore                          bool                         `json:"disable_store,omitempty"`              // 是否禁用 store 透传（默认允许透传，禁用后可能导致 Codex 无法使用）
+	AllowIncludeObfuscation               bool                         `json:"allow_include_obfuscation,omitempty"`  // 是否允许 stream_options.include_obfuscation 透传（默认过滤以避免关闭流混淆保护）
+	DisableTaskPollingSleep               bool                         `json:"disable_task_polling_sleep,omitempty"` // 是否跳过异步任务轮询间隔
+	AwsKeyType                            AwsKeyType                   `json:"aws_key_type,omitempty"`
+	UpstreamModelUpdateCheckEnabled       bool                         `json:"upstream_model_update_check_enabled,omitempty"`        // 是否检测上游模型更新
+	UpstreamModelUpdateAutoSyncEnabled    bool                         `json:"upstream_model_update_auto_sync_enabled,omitempty"`    // 是否自动同步上游模型更新
+	UpstreamModelUpdateLastCheckTime      int64                        `json:"upstream_model_update_last_check_time,omitempty"`      // 上次检测时间
+	UpstreamModelUpdateLastDetectedModels []string                     `json:"upstream_model_update_last_detected_models,omitempty"` // 上次检测到的可加入模型
+	UpstreamModelUpdateLastRemovedModels  []string                     `json:"upstream_model_update_last_removed_models,omitempty"`  // 上次检测到的可删除模型
+	UpstreamModelUpdateIgnoredModels      []string                     `json:"upstream_model_update_ignored_models,omitempty"`       // 手动忽略的模型
+	AdvancedCustom                        *AdvancedCustomConfig        `json:"advanced_custom,omitempty"`
 }
 
 func (s *ChannelOtherSettings) IsOpenRouterEnterprise() bool {

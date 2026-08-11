@@ -115,6 +115,12 @@ func HandleStreamResponseData(c *gin.Context, info *relaycommon.RelayInfo, claud
 			}
 		}
 		countClaudeStreamBillableTools(c, info, &claudeResponse)
+		if claudeResponse.Type == "message_stop" {
+			ensureClaudeFinalUsage(c, info, claudeInfo)
+			if err := helper.WriteNarraForkQuotaEvent(c, info, claudeInfo.Usage); err != nil {
+				common.SysLog("error writing NarraFork quota event: " + err.Error())
+			}
+		}
 		helper.ClaudeChunkData(c, claudeResponse, data)
 	} else if info.RelayFormat == types.RelayFormatOpenAI {
 		response := StreamResponseClaude2OpenAI(&claudeResponse)
@@ -150,9 +156,12 @@ func countClaudeStreamBillableTools(c *gin.Context, info *relaycommon.RelayInfo,
 	}
 }
 
-func HandleStreamFinalResponse(c *gin.Context, info *relaycommon.RelayInfo, claudeInfo *ClaudeResponseInfo) {
+func ensureClaudeFinalUsage(c *gin.Context, info *relaycommon.RelayInfo, claudeInfo *ClaudeResponseInfo) {
+	if claudeInfo == nil || claudeInfo.Usage == nil {
+		return
+	}
 	if claudeInfo.Usage.PromptTokens == 0 {
-		//上游出错
+		// 上游出错
 	}
 	if claudeInfo.Usage.CompletionTokens == 0 || !claudeInfo.Done {
 		if common.DebugEnabled {
@@ -169,15 +178,19 @@ func HandleStreamFinalResponse(c *gin.Context, info *relaycommon.RelayInfo, clau
 		}
 		claudeInfo.Usage.TotalTokens = claudeInfo.Usage.PromptTokens + claudeInfo.Usage.CompletionTokens
 	}
-	if claudeInfo.Usage != nil {
-		claudeInfo.Usage.UsageSemantic = "anthropic"
-	}
-	if claudeInfo.Usage != nil && claudeInfo.Usage.BillingUsage == nil {
+	claudeInfo.Usage.UsageSemantic = "anthropic"
+	if claudeInfo.Usage.BillingUsage == nil {
 		claudeInfo.Usage.BillingUsage = dto.NewClaudeMessagesBillingUsage(buildMessageDeltaPatchUsage(nil, claudeInfo))
 	}
+}
+
+func HandleStreamFinalResponse(c *gin.Context, info *relaycommon.RelayInfo, claudeInfo *ClaudeResponseInfo) {
+	ensureClaudeFinalUsage(c, info, claudeInfo)
 
 	if info.RelayFormat == types.RelayFormatClaude {
-		//
+		if err := helper.WriteNarraForkQuotaEvent(c, info, claudeInfo.Usage); err != nil {
+			common.SysLog("error writing NarraFork quota event: " + err.Error())
+		}
 	} else if info.RelayFormat == types.RelayFormatOpenAI {
 		if info.ShouldIncludeUsage {
 			openAIUsage := buildOpenAIStyleUsageFromClaudeUsage(claudeInfo.Usage)
@@ -186,6 +199,9 @@ func HandleStreamFinalResponse(c *gin.Context, info *relaycommon.RelayInfo, clau
 			if err != nil {
 				common.SysLog("send final response failed: " + err.Error())
 			}
+		}
+		if err := helper.WriteNarraForkQuotaEvent(c, info, claudeInfo.Usage); err != nil {
+			common.SysLog("error writing NarraFork quota event: " + err.Error())
 		}
 		helper.Done(c)
 	}

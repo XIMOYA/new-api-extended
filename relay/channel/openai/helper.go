@@ -170,6 +170,9 @@ func HandleFinalResponse(c *gin.Context, info *relaycommon.RelayInfo, lastStream
 			response.SetSystemFingerprint(systemFingerprint)
 			helper.ObjectData(c, response)
 		}
+		if err := helper.WriteNarraForkQuotaEvent(c, info, usage); err != nil {
+			common.SysLog("error writing NarraFork quota event: " + err.Error())
+		}
 		helper.Done(c)
 
 	case types.RelayFormatClaude:
@@ -192,7 +195,15 @@ func HandleFinalResponse(c *gin.Context, info *relaycommon.RelayInfo, lastStream
 			return
 		}
 		for _, resp := range claudeResponses {
+			if resp != nil && resp.Type == "message_stop" {
+				if err := helper.WriteNarraForkQuotaEvent(c, info, usage); err != nil {
+					common.SysLog("error writing NarraFork quota event: " + err.Error())
+				}
+			}
 			_ = helper.ClaudeData(c, *resp)
+		}
+		if err := helper.WriteNarraForkQuotaEvent(c, info, usage); err != nil {
+			common.SysLog("error writing NarraFork quota event: " + err.Error())
 		}
 		info.ClaudeConvertInfo.Done = true
 

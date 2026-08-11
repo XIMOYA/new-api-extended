@@ -8,8 +8,9 @@ import (
 // to record soft errors, signal fatal stops, or mark normal completion.
 // StreamScannerHandler checks IsStopped() after each callback invocation.
 type StreamResult struct {
-	status  *relaycommon.StreamStatus
-	stopped bool
+	status    *relaycommon.StreamStatus
+	stopped   bool
+	eventName string
 }
 
 func newStreamResult(status *relaycommon.StreamStatus) *StreamResult {
@@ -46,7 +47,17 @@ func (r *StreamResult) IsStopped() bool {
 	return r.stopped
 }
 
-// reset clears the per-chunk stopped flag so the object can be reused.
+// EventName returns the SSE event name associated with the current data chunk.
+func (r *StreamResult) EventName() string {
+	return r.eventName
+}
+
+func (r *StreamResult) setEventName(eventName string) {
+	r.eventName = eventName
+}
+
+// reset clears the per-chunk state so the object can be reused.
 func (r *StreamResult) reset() {
 	r.stopped = false
+	r.eventName = ""
 }
