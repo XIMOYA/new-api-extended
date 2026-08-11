@@ -66,6 +66,7 @@ const cacheHitRateScopes = ['request', 'today', 'recent_days'] as const
 const narraforkSchema = z.object({
   narrafork_setting: z.object({
     enabled: z.boolean(),
+    allow_user_display_override: z.boolean(),
     activation_mode: z.enum(activationModes),
     balance_source: z.enum(balanceSources),
     include_detailed: z.boolean(),
@@ -106,6 +107,7 @@ type NarraForkFormValues = z.output<typeof narraforkSchema>
 
 type FlatNarraForkDefaults = {
   'narrafork_setting.enabled': boolean
+  'narrafork_setting.allow_user_display_override': boolean
   'narrafork_setting.activation_mode': (typeof activationModes)[number]
   'narrafork_setting.balance_source': (typeof balanceSources)[number]
   'narrafork_setting.include_detailed': boolean
@@ -146,6 +148,8 @@ function buildFormDefaults(
   return {
     narrafork_setting: {
       enabled: defaults['narrafork_setting.enabled'],
+      allow_user_display_override:
+        defaults['narrafork_setting.allow_user_display_override'],
       activation_mode: defaults['narrafork_setting.activation_mode'],
       balance_source: defaults['narrafork_setting.balance_source'],
       include_detailed: defaults['narrafork_setting.include_detailed'],
@@ -187,6 +191,8 @@ function buildFormDefaults(
 function flattenFormValues(values: NarraForkFormValues): FlatNarraForkDefaults {
   return {
     'narrafork_setting.enabled': values.narrafork_setting.enabled,
+    'narrafork_setting.allow_user_display_override':
+      values.narrafork_setting.allow_user_display_override,
     'narrafork_setting.activation_mode':
       values.narrafork_setting.activation_mode,
     'narrafork_setting.balance_source': values.narrafork_setting.balance_source,
@@ -437,6 +443,31 @@ export function NarraForkSettingsCard({ defaultValues }: Props) {
                   <FormDescription>
                     {t(
                       'Disabled by default so ordinary OpenAI and Anthropic SDK clients receive no unknown SSE events.'
+                    )}
+                  </FormDescription>
+                </SettingsSwitchContent>
+                <FormControl>
+                  <Switch
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                  />
+                </FormControl>
+              </SettingsSwitchItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name='narrafork_setting.allow_user_display_override'
+            render={({ field }) => (
+              <SettingsSwitchItem>
+                <SettingsSwitchContent>
+                  <FormLabel>
+                    {t('Allow users to customize NarraFork display')}
+                  </FormLabel>
+                  <FormDescription>
+                    {t(
+                      'Users can choose whether to show or hide NarraFork quota information for their own requests.'
                     )}
                   </FormDescription>
                 </SettingsSwitchContent>

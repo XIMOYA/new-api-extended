@@ -238,6 +238,7 @@ export type ContentSettings = {
 
 export type ModelSettings = {
   'narrafork_setting.enabled': boolean
+  'narrafork_setting.allow_user_display_override': boolean
   'narrafork_setting.activation_mode':
     | 'never'
     | 'header_only'

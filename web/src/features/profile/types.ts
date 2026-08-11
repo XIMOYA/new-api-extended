@@ -69,6 +69,8 @@ export interface UserProfile {
   created_time: number
   /** User settings (JSON string) */
   setting?: string
+  /** Whether the administrator allows personal NarraFork display preferences */
+  narrafork_user_display_override_allowed?: boolean
   /** WeChat ID (OAuth) */
   wechat_id?: string
   /** GitHub ID (OAuth) */
@@ -87,6 +89,7 @@ export interface UserProfile {
  * Notification type
  */
 export type NotifyType = 'email' | 'webhook' | 'bark' | 'gotify'
+export type NarraForkDisplayMode = 'inherit' | 'show' | 'hide'
 
 /**
  * Parsed user settings
@@ -118,6 +121,8 @@ export interface UserSettings {
   upstream_model_update_notify_enabled?: boolean
   /** Preferred interface/API response language */
   language?: string
+  /** Personal NarraFork display preference */
+  narrafork_display_mode?: NarraForkDisplayMode
 }
 
 /**
@@ -145,6 +150,7 @@ export interface UpdateUserSettingsRequest {
   accept_unset_model_ratio_model?: boolean
   record_ip_log?: boolean
   upstream_model_update_notify_enabled?: boolean
+  narrafork_display_mode?: NarraForkDisplayMode
 }
 
 /**

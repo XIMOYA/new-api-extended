@@ -1,3 +1,5 @@
+// relaykit/dto/user_settings.go
+// 用户个人设置 DTO，承载通知、界面偏好和 NarraFork 显示偏好。
 package dto
 
 type UserSetting struct {
@@ -16,6 +18,7 @@ type UserSetting struct {
 	SidebarModules                   string  `json:"sidebar_modules,omitempty"`                      // SidebarModules 左侧边栏模块配置
 	BillingPreference                string  `json:"billing_preference,omitempty"`                   // BillingPreference 扣费策略（订阅/钱包）
 	Language                         string  `json:"language,omitempty"`                             // Language 用户语言偏好 (zh, en)
+	NarraForkDisplayMode             string  `json:"narrafork_display_mode,omitempty"`               // NarraFork 信息显示偏好（inherit/show/hide）
 }
 
 var (

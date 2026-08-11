@@ -73,6 +73,8 @@ const MODELS_SECTIONS = [
       <NarraForkSettingsCard
         defaultValues={{
           'narrafork_setting.enabled': settings['narrafork_setting.enabled'],
+          'narrafork_setting.allow_user_display_override':
+            settings['narrafork_setting.allow_user_display_override'],
           'narrafork_setting.activation_mode':
             settings['narrafork_setting.activation_mode'],
           'narrafork_setting.balance_source':

@@ -19,6 +19,7 @@ import (
 	"github.com/QuantumNous/new-api/service"
 	"github.com/QuantumNous/new-api/service/authz"
 	"github.com/QuantumNous/new-api/setting"
+	"github.com/QuantumNous/new-api/setting/narrafork_setting"
 	"github.com/QuantumNous/new-api/setting/operation_setting"
 
 	"github.com/QuantumNous/new-api/constant"
@@ -534,7 +535,8 @@ func buildSelfUserData(user *model.User) map[string]interface{} {
 		"setting":           user.Setting,
 		"stripe_customer":   user.StripeCustomer,
 		"sidebar_modules":   userSetting.SidebarModules, // 正确提取sidebar_modules字段
-		"permissions":       permissions,
+		"narrafork_user_display_override_allowed": narrafork_setting.GetSettings().AllowUserDisplayOverride,
+		"permissions": permissions,
 	}
 }
 
@@ -1398,6 +1400,7 @@ type UpdateUserSettingRequest struct {
 	UpstreamModelUpdateNotifyEnabled *bool   `json:"upstream_model_update_notify_enabled,omitempty"`
 	AcceptUnsetModelRatioModel       bool    `json:"accept_unset_model_ratio_model"`
 	RecordIpLog                      bool    `json:"record_ip_log"`
+	NarraForkDisplayMode             *string `json:"narrafork_display_mode,omitempty"`
 }
 
 func UpdateUserSetting(c *gin.Context) {
@@ -1492,6 +1495,18 @@ func UpdateUserSetting(c *gin.Context) {
 	if user.Role >= common.RoleAdminUser && req.UpstreamModelUpdateNotifyEnabled != nil {
 		upstreamModelUpdateNotifyEnabled = *req.UpstreamModelUpdateNotifyEnabled
 	}
+	narraForkDisplayMode := narrafork_setting.NormalizeUserDisplayMode(existingSettings.NarraForkDisplayMode)
+	if narrafork_setting.GetSettings().AllowUserDisplayOverride && req.NarraForkDisplayMode != nil {
+		rawMode := strings.TrimSpace(*req.NarraForkDisplayMode)
+		if rawMode == "" {
+			rawMode = narrafork_setting.UserDisplayModeInherit
+		}
+		if !narrafork_setting.IsValidUserDisplayMode(rawMode) {
+			common.ApiError(c, fmt.Errorf("invalid NarraFork display mode: %s", rawMode))
+			return
+		}
+		narraForkDisplayMode = narrafork_setting.NormalizeUserDisplayMode(rawMode)
+	}
 
 	// 构建设置
 	settings := dto.UserSetting{
@@ -1500,6 +1515,7 @@ func UpdateUserSetting(c *gin.Context) {
 		UpstreamModelUpdateNotifyEnabled: upstreamModelUpdateNotifyEnabled,
 		AcceptUnsetRatioModel:            req.AcceptUnsetModelRatioModel,
 		RecordIpLog:                      req.RecordIpLog,
+		NarraForkDisplayMode:             narraForkDisplayMode,
 	}
 
 	// 如果是webhook类型,添加webhook相关设置

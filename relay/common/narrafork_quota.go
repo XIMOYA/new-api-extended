@@ -102,7 +102,15 @@ func NewNarraForkQuotaEventConfig(global narrafork_setting.NarraForkSetting) Nar
 }
 
 func ResolveNarraForkQuotaEvent(c *gin.Context, info *RelayInfo) NarraForkQuotaEventConfig {
-	resolved := NewNarraForkQuotaEventConfig(narrafork_setting.GetSettings())
+	global := narrafork_setting.GetSettings()
+	resolved := NewNarraForkQuotaEventConfig(global)
+	if info != nil {
+		ApplyNarraForkUserDisplayPreference(
+			&resolved,
+			info.UserSetting.NarraForkDisplayMode,
+			global.AllowUserDisplayOverride,
+		)
+	}
 
 	if overrides, ok := appcommon.GetContextKeyType[narrafork_setting.NarraForkPolicyOverrides](c, constant.ContextKeyNarraForkPolicyOverrides); ok {
 		ApplyNarraForkPolicyPatch(&resolved, overrides.Group)
@@ -118,6 +126,13 @@ func ResolveNarraForkQuotaEvent(c *gin.Context, info *RelayInfo) NarraForkQuotaE
 		SupportsNarraForkQuotaEventFormat(info.RelayFormat) &&
 		matchesNarraForkActivation(c, resolved.ActivationMode)
 	return resolved
+}
+
+func ApplyNarraForkUserDisplayPreference(config *NarraForkQuotaEventConfig, mode string, allowed bool) {
+	if !allowed || config == nil || narrafork_setting.NormalizeUserDisplayMode(mode) != narrafork_setting.UserDisplayModeHide {
+		return
+	}
+	config.Enabled = false
 }
 
 func ApplyNarraForkChannelSettings(config *NarraForkQuotaEventConfig, settings *dto.NarraForkQuotaEventSettings) {

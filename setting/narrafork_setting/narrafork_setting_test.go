@@ -9,6 +9,9 @@ func TestGetSettingsUsesSafeDefaults(t *testing.T) {
 	if settings.Enabled {
 		t.Fatal("NarraFork quota events must be disabled by default")
 	}
+	if settings.AllowUserDisplayOverride {
+		t.Fatal("user NarraFork display overrides must be disabled by default")
+	}
 	if settings.ActivationMode != ActivationModeHeaderOrUserAgent {
 		t.Fatalf("unexpected activation mode: %q", settings.ActivationMode)
 	}
@@ -74,6 +77,12 @@ func TestNormalizeNarraforkSettingsFallsBackSafely(t *testing.T) {
 	if got := NormalizeTokenDisplayMode("unknown"); got != TokenDisplayModeExact {
 		t.Fatalf("unexpected token display mode fallback: %q", got)
 	}
+	if got := NormalizeUserDisplayMode("unknown"); got != UserDisplayModeInherit {
+		t.Fatalf("unexpected user display mode fallback: %q", got)
+	}
+	if !IsValidUserDisplayMode(UserDisplayModeHide) || IsValidUserDisplayMode("unknown") {
+		t.Fatal("unexpected user display mode validation result")
+	}
 	if got := NormalizeCacheHitRateScope("unknown"); got != CacheHitRateScopeRequest {
 		t.Fatalf("unexpected cache hit rate scope fallback: %q", got)
 	}
@@ -87,18 +96,19 @@ func TestNormalizeNarraforkSettingsFallsBackSafely(t *testing.T) {
 
 func TestValidateOptionRejectsUnknownAndInvalidValues(t *testing.T) {
 	valid := map[string]string{
-		OptionPrefix + "enabled":                 "false",
-		OptionPrefix + "activation_mode":         ActivationModeHeaderOnly,
-		OptionPrefix + "balance_source":          BalanceSourceCustom,
-		OptionPrefix + "duplicate_policy":        DuplicatePolicyReplace,
-		OptionPrefix + "token_display_mode":      TokenDisplayModeCompact,
-		OptionPrefix + "cache_hit_rate_scope":    CacheHitRateScopeRecentDays,
-		OptionPrefix + "cache_hit_rate_days":     "14",
-		OptionPrefix + "show_balance":            "false",
-		OptionPrefix + "show_today_tokens":       "true",
-		OptionPrefix + "show_reasoning_tokens":   "false",
-		OptionPrefix + "show_unavailable_fields": "true",
-		OptionPrefix + "custom_quota_balance":    "configured",
+		OptionPrefix + "enabled":                     "false",
+		OptionPrefix + "allow_user_display_override": "true",
+		OptionPrefix + "activation_mode":             ActivationModeHeaderOnly,
+		OptionPrefix + "balance_source":              BalanceSourceCustom,
+		OptionPrefix + "duplicate_policy":            DuplicatePolicyReplace,
+		OptionPrefix + "token_display_mode":          TokenDisplayModeCompact,
+		OptionPrefix + "cache_hit_rate_scope":        CacheHitRateScopeRecentDays,
+		OptionPrefix + "cache_hit_rate_days":         "14",
+		OptionPrefix + "show_balance":                "false",
+		OptionPrefix + "show_today_tokens":           "true",
+		OptionPrefix + "show_reasoning_tokens":       "false",
+		OptionPrefix + "show_unavailable_fields":     "true",
+		OptionPrefix + "custom_quota_balance":        "configured",
 	}
 	for key, value := range valid {
 		if err := ValidateOption(key, value); err != nil {
@@ -107,15 +117,16 @@ func TestValidateOptionRejectsUnknownAndInvalidValues(t *testing.T) {
 	}
 
 	invalid := map[string]string{
-		OptionPrefix + "enabled":                 "not-a-bool",
-		OptionPrefix + "activation_mode":         "unknown",
-		OptionPrefix + "balance_source":          "unknown",
-		OptionPrefix + "duplicate_policy":        "unknown",
-		OptionPrefix + "cache_hit_rate_scope":    "unknown",
-		OptionPrefix + "cache_hit_rate_days":     "31",
-		OptionPrefix + "show_cache_hit_rate":     "not-a-bool",
-		OptionPrefix + "show_unavailable_fields": "not-a-bool",
-		OptionPrefix + "unknown":                 "value",
+		OptionPrefix + "enabled":                     "not-a-bool",
+		OptionPrefix + "allow_user_display_override": "not-a-bool",
+		OptionPrefix + "activation_mode":             "unknown",
+		OptionPrefix + "balance_source":              "unknown",
+		OptionPrefix + "duplicate_policy":            "unknown",
+		OptionPrefix + "cache_hit_rate_scope":        "unknown",
+		OptionPrefix + "cache_hit_rate_days":         "31",
+		OptionPrefix + "show_cache_hit_rate":         "not-a-bool",
+		OptionPrefix + "show_unavailable_fields":     "not-a-bool",
+		OptionPrefix + "unknown":                     "value",
 	}
 	for key, value := range invalid {
 		if err := ValidateOption(key, value); err == nil {

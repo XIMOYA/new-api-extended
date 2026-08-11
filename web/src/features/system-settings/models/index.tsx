@@ -26,6 +26,7 @@ import {
 
 const defaultModelSettings: ModelSettings = {
   'narrafork_setting.enabled': false,
+  'narrafork_setting.allow_user_display_override': false,
   'narrafork_setting.activation_mode': 'header_or_user_agent',
   'narrafork_setting.balance_source': 'effective',
   'narrafork_setting.include_detailed': true,

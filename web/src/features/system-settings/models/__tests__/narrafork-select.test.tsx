@@ -77,6 +77,7 @@ reactTestGlobals.IS_REACT_ACT_ENVIRONMENT = true
 
 const defaultValues = {
   'narrafork_setting.enabled': true,
+  'narrafork_setting.allow_user_display_override': false,
   'narrafork_setting.activation_mode': 'header_or_user_agent' as const,
   'narrafork_setting.balance_source': 'effective' as const,
   'narrafork_setting.include_detailed': true,

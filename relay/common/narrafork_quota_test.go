@@ -84,6 +84,55 @@ func TestResolveNarraForkQuotaEvent_UnsupportedFormatIsDisabled(t *testing.T) {
 	require.False(t, resolved.Activated)
 }
 
+func TestApplyNarraForkUserDisplayPreference(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name    string
+		mode    string
+		allowed bool
+		want    bool
+	}{
+		{name: "hide when allowed", mode: narrafork_setting.UserDisplayModeHide, allowed: true, want: false},
+		{name: "hide ignored when disallowed", mode: narrafork_setting.UserDisplayModeHide, allowed: false, want: true},
+		{name: "inherit keeps enabled", mode: narrafork_setting.UserDisplayModeInherit, allowed: true, want: true},
+		{name: "show keeps enabled", mode: narrafork_setting.UserDisplayModeShow, allowed: true, want: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			config := &NarraForkQuotaEventConfig{Enabled: true}
+			ApplyNarraForkUserDisplayPreference(config, tt.mode, tt.allowed)
+			assert.Equal(t, tt.want, config.Enabled)
+		})
+	}
+}
+
+func TestResolveNarraForkQuotaEvent_IgnoresUserHideWhenGlobalOverrideIsDisabled(t *testing.T) {
+	t.Parallel()
+
+	recorder := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(recorder)
+	c.Request = httptest.NewRequest(http.MethodPost, "/v1/chat/completions", nil)
+	c.Request.Header.Set(NarraForkQuotaEventHeader, "true")
+	info := &RelayInfo{
+		IsStream:    true,
+		RelayFormat: types.RelayFormatOpenAI,
+		UserSetting: dto.UserSetting{NarraForkDisplayMode: narrafork_setting.UserDisplayModeHide},
+		ChannelMeta: &ChannelMeta{
+			ChannelOtherSettings: dto.ChannelOtherSettings{
+				NarraFork: &dto.NarraForkQuotaEventSettings{
+					Enabled:        func() *bool { value := true; return &value }(),
+					ActivationMode: narrafork_setting.ActivationModeAlways,
+				},
+			},
+		},
+	}
+
+	resolved := ResolveNarraForkQuotaEvent(c, info)
+	require.True(t, resolved.Activated)
+}
+
 func TestCanWriteNarraForkQuotaEventRejectsUnsuccessfulStreamEnd(t *testing.T) {
 	t.Parallel()
 

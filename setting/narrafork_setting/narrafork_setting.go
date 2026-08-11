@@ -31,6 +31,10 @@ const (
 	TokenDisplayModeExact   = "exact"
 	TokenDisplayModeCompact = "compact"
 
+	UserDisplayModeInherit = "inherit"
+	UserDisplayModeShow    = "show"
+	UserDisplayModeHide    = "hide"
+
 	CacheHitRateScopeRequest    = "request"
 	CacheHitRateScopeToday      = "today"
 	CacheHitRateScopeRecentDays = "recent_days"
@@ -47,6 +51,7 @@ type NarraForkSetting struct {
 	DuplicatePolicy            string `json:"duplicate_policy"`
 	ExposeExtra                bool   `json:"expose_extra"`
 	TokenDisplayMode           string `json:"token_display_mode"`
+	AllowUserDisplayOverride   bool   `json:"allow_user_display_override"`
 	CacheHitRateScope          string `json:"cache_hit_rate_scope"`
 	CacheHitRateDays           int    `json:"cache_hit_rate_days"`
 	ShowBalance                bool   `json:"show_balance"`
@@ -83,6 +88,7 @@ var narraForkSetting = NarraForkSetting{
 	DuplicatePolicy:            DuplicatePolicySkip,
 	ExposeExtra:                false,
 	TokenDisplayMode:           TokenDisplayModeExact,
+	AllowUserDisplayOverride:   false,
 	CacheHitRateScope:          CacheHitRateScopeRequest,
 	CacheHitRateDays:           DefaultCacheHitRateDays,
 	ShowBalance:                true,
@@ -163,6 +169,24 @@ func NormalizeTokenDisplayMode(value string) string {
 	}
 }
 
+func NormalizeUserDisplayMode(value string) string {
+	switch strings.ToLower(strings.TrimSpace(value)) {
+	case UserDisplayModeInherit, UserDisplayModeShow, UserDisplayModeHide:
+		return strings.ToLower(strings.TrimSpace(value))
+	default:
+		return UserDisplayModeInherit
+	}
+}
+
+func IsValidUserDisplayMode(value string) bool {
+	switch strings.ToLower(strings.TrimSpace(value)) {
+	case UserDisplayModeInherit, UserDisplayModeShow, UserDisplayModeHide:
+		return true
+	default:
+		return false
+	}
+}
+
 func NormalizeCacheHitRateScope(value string) string {
 	switch strings.ToLower(strings.TrimSpace(value)) {
 	case CacheHitRateScopeRequest, CacheHitRateScopeToday, CacheHitRateScopeRecentDays:
@@ -190,7 +214,7 @@ func ValidateOption(key string, value string) error {
 
 	field := strings.TrimPrefix(strings.TrimSpace(key), OptionPrefix)
 	switch field {
-	case "enabled", "include_detailed", "expose_extra",
+	case "enabled", "allow_user_display_override", "include_detailed", "expose_extra",
 		"show_balance", "show_request_quota", "show_today_quota", "show_today_tokens",
 		"show_month_quota", "show_month_tokens", "show_total_quota", "show_used_quota",
 		"show_input_tokens", "show_output_tokens", "show_total_tokens", "show_cache_hit_tokens",
