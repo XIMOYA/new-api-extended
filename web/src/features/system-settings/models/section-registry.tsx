@@ -75,6 +75,74 @@ const MODELS_SECTIONS = [
           'narrafork_setting.enabled': settings['narrafork_setting.enabled'],
           'narrafork_setting.allow_user_display_override':
             settings['narrafork_setting.allow_user_display_override'],
+          'narrafork_setting.allow_user_enabled':
+            settings['narrafork_setting.allow_user_enabled'],
+          'narrafork_setting.allow_user_activation_mode':
+            settings['narrafork_setting.allow_user_activation_mode'],
+          'narrafork_setting.allow_user_balance_source':
+            settings['narrafork_setting.allow_user_balance_source'],
+          'narrafork_setting.allow_user_include_detailed':
+            settings['narrafork_setting.allow_user_include_detailed'],
+          'narrafork_setting.allow_user_duplicate_policy':
+            settings['narrafork_setting.allow_user_duplicate_policy'],
+          'narrafork_setting.allow_user_expose_extra':
+            settings['narrafork_setting.allow_user_expose_extra'],
+          'narrafork_setting.allow_user_token_display_mode':
+            settings['narrafork_setting.allow_user_token_display_mode'],
+          'narrafork_setting.allow_user_cache_hit_rate_scope':
+            settings['narrafork_setting.allow_user_cache_hit_rate_scope'],
+          'narrafork_setting.allow_user_cache_hit_rate_days':
+            settings['narrafork_setting.allow_user_cache_hit_rate_days'],
+          'narrafork_setting.allow_user_show_balance':
+            settings['narrafork_setting.allow_user_show_balance'],
+          'narrafork_setting.allow_user_show_request_quota':
+            settings['narrafork_setting.allow_user_show_request_quota'],
+          'narrafork_setting.allow_user_show_today_quota':
+            settings['narrafork_setting.allow_user_show_today_quota'],
+          'narrafork_setting.allow_user_show_today_tokens':
+            settings['narrafork_setting.allow_user_show_today_tokens'],
+          'narrafork_setting.allow_user_show_month_quota':
+            settings['narrafork_setting.allow_user_show_month_quota'],
+          'narrafork_setting.allow_user_show_month_tokens':
+            settings['narrafork_setting.allow_user_show_month_tokens'],
+          'narrafork_setting.allow_user_show_total_quota':
+            settings['narrafork_setting.allow_user_show_total_quota'],
+          'narrafork_setting.allow_user_show_used_quota':
+            settings['narrafork_setting.allow_user_show_used_quota'],
+          'narrafork_setting.allow_user_show_input_tokens':
+            settings['narrafork_setting.allow_user_show_input_tokens'],
+          'narrafork_setting.allow_user_show_output_tokens':
+            settings['narrafork_setting.allow_user_show_output_tokens'],
+          'narrafork_setting.allow_user_show_total_tokens':
+            settings['narrafork_setting.allow_user_show_total_tokens'],
+          'narrafork_setting.allow_user_show_cache_hit_tokens':
+            settings['narrafork_setting.allow_user_show_cache_hit_tokens'],
+          'narrafork_setting.allow_user_show_cache_hit_rate':
+            settings['narrafork_setting.allow_user_show_cache_hit_rate'],
+          'narrafork_setting.allow_user_show_reasoning_tokens':
+            settings['narrafork_setting.allow_user_show_reasoning_tokens'],
+          'narrafork_setting.allow_user_show_latency':
+            settings['narrafork_setting.allow_user_show_latency'],
+          'narrafork_setting.allow_user_show_ttft':
+            settings['narrafork_setting.allow_user_show_ttft'],
+          'narrafork_setting.allow_user_show_request_id':
+            settings['narrafork_setting.allow_user_show_request_id'],
+          'narrafork_setting.allow_user_show_retry_count':
+            settings['narrafork_setting.allow_user_show_retry_count'],
+          'narrafork_setting.allow_user_show_model':
+            settings['narrafork_setting.allow_user_show_model'],
+          'narrafork_setting.allow_user_show_billing_source':
+            settings['narrafork_setting.allow_user_show_billing_source'],
+          'narrafork_setting.allow_user_show_unavailable_fields':
+            settings['narrafork_setting.allow_user_show_unavailable_fields'],
+          'narrafork_setting.allow_user_detail_template':
+            settings['narrafork_setting.allow_user_detail_template'],
+          'narrafork_setting.allow_user_custom_quota_balance':
+            settings['narrafork_setting.allow_user_custom_quota_balance'],
+          'narrafork_setting.allow_user_custom_detailed_quota_balance':
+            settings[
+              'narrafork_setting.allow_user_custom_detailed_quota_balance'
+            ],
           'narrafork_setting.activation_mode':
             settings['narrafork_setting.activation_mode'],
           'narrafork_setting.balance_source':
@@ -121,12 +189,14 @@ const MODELS_SECTIONS = [
             settings['narrafork_setting.show_reasoning_tokens'],
           'narrafork_setting.show_latency':
             settings['narrafork_setting.show_latency'],
-          'narrafork_setting.show_ttft': settings['narrafork_setting.show_ttft'],
+          'narrafork_setting.show_ttft':
+            settings['narrafork_setting.show_ttft'],
           'narrafork_setting.show_request_id':
             settings['narrafork_setting.show_request_id'],
           'narrafork_setting.show_retry_count':
             settings['narrafork_setting.show_retry_count'],
-          'narrafork_setting.show_model': settings['narrafork_setting.show_model'],
+          'narrafork_setting.show_model':
+            settings['narrafork_setting.show_model'],
           'narrafork_setting.show_billing_source':
             settings['narrafork_setting.show_billing_source'],
           'narrafork_setting.show_unavailable_fields':

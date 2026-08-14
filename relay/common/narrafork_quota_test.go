@@ -133,6 +133,59 @@ func TestResolveNarraForkQuotaEvent_IgnoresUserHideWhenGlobalOverrideIsDisabled(
 	require.True(t, resolved.Activated)
 }
 
+func TestApplyNarraForkUserOverridesHonorsCapabilitiesAndGlobalCaps(t *testing.T) {
+	t.Parallel()
+
+	global := narrafork_setting.NarraForkSetting{
+		Enabled:                  true,
+		IncludeDetailed:          true,
+		ShowBalance:              true,
+		ShowModel:                false,
+		AllowUserDisplayOverride: true,
+		AllowUserEnabled:         true,
+		AllowUserShowBalance:     true,
+		AllowUserShowModel:       true,
+	}
+	capabilities := narrafork_setting.BuildNarraForkUserOverrideCapabilities(global)
+	config := &NarraForkQuotaEventConfig{
+		Enabled:     true,
+		ShowBalance: true,
+		ShowModel:   false,
+	}
+	settings := dto.UserSetting{
+		NarraFork: &dto.NarraForkUserSettings{
+			Enabled:     func() *bool { value := false; return &value }(),
+			ShowBalance: func() *bool { value := false; return &value }(),
+			ShowModel:   func() *bool { value := true; return &value }(),
+		},
+	}
+
+	ApplyNarraForkUserOverrides(config, settings, capabilities)
+
+	require.False(t, config.Enabled)
+	require.False(t, config.ShowBalance)
+	require.False(t, config.ShowModel)
+}
+
+func TestBuildNarraForkUserOverrideCapabilitiesHidesDisabledGlobalFields(t *testing.T) {
+	t.Parallel()
+
+	global := narrafork_setting.NarraForkSetting{
+		Enabled:                  true,
+		IncludeDetailed:          false,
+		ShowBalance:              false,
+		AllowUserDisplayOverride: true,
+		AllowUserIncludeDetailed: true,
+		AllowUserShowBalance:     true,
+	}
+	capabilities := narrafork_setting.BuildNarraForkUserOverrideCapabilities(global)
+
+	require.True(t, capabilities.Visible)
+	require.True(t, capabilities.Allows(narrafork_setting.UserOverrideFieldEnabled))
+	require.False(t, capabilities.Allows(narrafork_setting.UserOverrideFieldIncludeDetailed))
+	require.False(t, capabilities.Allows(narrafork_setting.UserOverrideFieldShowBalance))
+}
+
 func TestCanWriteNarraForkQuotaEventRejectsUnsuccessfulStreamEnd(t *testing.T) {
 	t.Parallel()
 

@@ -25,7 +25,12 @@ export type SystemOptionKey = string
 
 export type NarraForkPolicyPatch = {
   enabled?: boolean
-  activation_mode?: 'never' | 'header_only' | 'user_agent_only' | 'header_or_user_agent' | 'always'
+  activation_mode?:
+    | 'never'
+    | 'header_only'
+    | 'user_agent_only'
+    | 'header_or_user_agent'
+    | 'always'
   balance_source?: 'effective' | 'user_quota' | 'token_quota' | 'custom'
   include_detailed?: boolean
   duplicate_policy?: 'skip' | 'replace' | 'always'
@@ -239,6 +244,39 @@ export type ContentSettings = {
 export type ModelSettings = {
   'narrafork_setting.enabled': boolean
   'narrafork_setting.allow_user_display_override': boolean
+  'narrafork_setting.allow_user_enabled': boolean
+  'narrafork_setting.allow_user_activation_mode': boolean
+  'narrafork_setting.allow_user_balance_source': boolean
+  'narrafork_setting.allow_user_include_detailed': boolean
+  'narrafork_setting.allow_user_duplicate_policy': boolean
+  'narrafork_setting.allow_user_expose_extra': boolean
+  'narrafork_setting.allow_user_token_display_mode': boolean
+  'narrafork_setting.allow_user_cache_hit_rate_scope': boolean
+  'narrafork_setting.allow_user_cache_hit_rate_days': boolean
+  'narrafork_setting.allow_user_show_balance': boolean
+  'narrafork_setting.allow_user_show_request_quota': boolean
+  'narrafork_setting.allow_user_show_today_quota': boolean
+  'narrafork_setting.allow_user_show_today_tokens': boolean
+  'narrafork_setting.allow_user_show_month_quota': boolean
+  'narrafork_setting.allow_user_show_month_tokens': boolean
+  'narrafork_setting.allow_user_show_total_quota': boolean
+  'narrafork_setting.allow_user_show_used_quota': boolean
+  'narrafork_setting.allow_user_show_input_tokens': boolean
+  'narrafork_setting.allow_user_show_output_tokens': boolean
+  'narrafork_setting.allow_user_show_total_tokens': boolean
+  'narrafork_setting.allow_user_show_cache_hit_tokens': boolean
+  'narrafork_setting.allow_user_show_cache_hit_rate': boolean
+  'narrafork_setting.allow_user_show_reasoning_tokens': boolean
+  'narrafork_setting.allow_user_show_latency': boolean
+  'narrafork_setting.allow_user_show_ttft': boolean
+  'narrafork_setting.allow_user_show_request_id': boolean
+  'narrafork_setting.allow_user_show_retry_count': boolean
+  'narrafork_setting.allow_user_show_model': boolean
+  'narrafork_setting.allow_user_show_billing_source': boolean
+  'narrafork_setting.allow_user_show_unavailable_fields': boolean
+  'narrafork_setting.allow_user_detail_template': boolean
+  'narrafork_setting.allow_user_custom_quota_balance': boolean
+  'narrafork_setting.allow_user_custom_detailed_quota_balance': boolean
   'narrafork_setting.activation_mode':
     | 'never'
     | 'header_only'

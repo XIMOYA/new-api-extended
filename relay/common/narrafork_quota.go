@@ -105,10 +105,10 @@ func ResolveNarraForkQuotaEvent(c *gin.Context, info *RelayInfo) NarraForkQuotaE
 	global := narrafork_setting.GetSettings()
 	resolved := NewNarraForkQuotaEventConfig(global)
 	if info != nil {
-		ApplyNarraForkUserDisplayPreference(
+		ApplyNarraForkUserOverrides(
 			&resolved,
-			info.UserSetting.NarraForkDisplayMode,
-			global.AllowUserDisplayOverride,
+			info.UserSetting,
+			narrafork_setting.BuildNarraForkUserOverrideCapabilities(global),
 		)
 	}
 
@@ -129,10 +129,141 @@ func ResolveNarraForkQuotaEvent(c *gin.Context, info *RelayInfo) NarraForkQuotaE
 }
 
 func ApplyNarraForkUserDisplayPreference(config *NarraForkQuotaEventConfig, mode string, allowed bool) {
-	if !allowed || config == nil || narrafork_setting.NormalizeUserDisplayMode(mode) != narrafork_setting.UserDisplayModeHide {
+	if !allowed || config == nil {
 		return
 	}
-	config.Enabled = false
+	switch narrafork_setting.NormalizeUserDisplayMode(mode) {
+	case narrafork_setting.UserDisplayModeHide:
+		config.Enabled = false
+	case narrafork_setting.UserDisplayModeShow:
+		config.Enabled = true
+	}
+}
+
+func ApplyNarraForkUserOverrides(
+	config *NarraForkQuotaEventConfig,
+	userSetting dto.UserSetting,
+	capabilities narrafork_setting.NarraForkUserOverrideCapabilities,
+) {
+	if config == nil {
+		return
+	}
+
+	if userSetting.NarraFork != nil {
+		patch := &narrafork_setting.NarraForkPolicyPatch{}
+		settings := userSetting.NarraFork
+
+		if capabilities.Allows(narrafork_setting.UserOverrideFieldEnabled) && settings.Enabled != nil {
+			patch.Enabled = settings.Enabled
+		}
+		if capabilities.Allows(narrafork_setting.UserOverrideFieldActivationMode) {
+			patch.ActivationMode = settings.ActivationMode
+		}
+		if capabilities.Allows(narrafork_setting.UserOverrideFieldBalanceSource) {
+			patch.BalanceSource = settings.BalanceSource
+		}
+		if capabilities.Allows(narrafork_setting.UserOverrideFieldIncludeDetailed) && settings.IncludeDetailed != nil {
+			patch.IncludeDetailed = settings.IncludeDetailed
+		}
+		if capabilities.Allows(narrafork_setting.UserOverrideFieldDuplicatePolicy) {
+			patch.DuplicatePolicy = settings.DuplicatePolicy
+		}
+		if capabilities.Allows(narrafork_setting.UserOverrideFieldExposeExtra) && settings.ExposeExtra != nil {
+			patch.ExposeExtra = settings.ExposeExtra
+		}
+		if capabilities.Allows(narrafork_setting.UserOverrideFieldTokenDisplayMode) {
+			patch.TokenDisplayMode = settings.TokenDisplayMode
+		}
+		if capabilities.Allows(narrafork_setting.UserOverrideFieldCacheHitRateScope) {
+			patch.CacheHitRateScope = settings.CacheHitRateScope
+		}
+		if capabilities.Allows(narrafork_setting.UserOverrideFieldCacheHitRateDays) && settings.CacheHitRateDays != nil {
+			patch.CacheHitRateDays = settings.CacheHitRateDays
+		}
+
+		if capabilities.Allows(narrafork_setting.UserOverrideFieldShowBalance) && settings.ShowBalance != nil {
+			patch.ShowBalance = settings.ShowBalance
+		}
+		if capabilities.Allows(narrafork_setting.UserOverrideFieldShowRequestQuota) && settings.ShowRequestQuota != nil {
+			patch.ShowRequestQuota = settings.ShowRequestQuota
+		}
+		if capabilities.Allows(narrafork_setting.UserOverrideFieldShowTodayQuota) && settings.ShowTodayQuota != nil {
+			patch.ShowTodayQuota = settings.ShowTodayQuota
+		}
+		if capabilities.Allows(narrafork_setting.UserOverrideFieldShowTodayTokens) && settings.ShowTodayTokens != nil {
+			patch.ShowTodayTokens = settings.ShowTodayTokens
+		}
+		if capabilities.Allows(narrafork_setting.UserOverrideFieldShowMonthQuota) && settings.ShowMonthQuota != nil {
+			patch.ShowMonthQuota = settings.ShowMonthQuota
+		}
+		if capabilities.Allows(narrafork_setting.UserOverrideFieldShowMonthTokens) && settings.ShowMonthTokens != nil {
+			patch.ShowMonthTokens = settings.ShowMonthTokens
+		}
+		if capabilities.Allows(narrafork_setting.UserOverrideFieldShowTotalQuota) && settings.ShowTotalQuota != nil {
+			patch.ShowTotalQuota = settings.ShowTotalQuota
+		}
+		if capabilities.Allows(narrafork_setting.UserOverrideFieldShowUsedQuota) && settings.ShowUsedQuota != nil {
+			patch.ShowUsedQuota = settings.ShowUsedQuota
+		}
+		if capabilities.Allows(narrafork_setting.UserOverrideFieldShowInputTokens) && settings.ShowInputTokens != nil {
+			patch.ShowInputTokens = settings.ShowInputTokens
+		}
+		if capabilities.Allows(narrafork_setting.UserOverrideFieldShowOutputTokens) && settings.ShowOutputTokens != nil {
+			patch.ShowOutputTokens = settings.ShowOutputTokens
+		}
+		if capabilities.Allows(narrafork_setting.UserOverrideFieldShowTotalTokens) && settings.ShowTotalTokens != nil {
+			patch.ShowTotalTokens = settings.ShowTotalTokens
+		}
+		if capabilities.Allows(narrafork_setting.UserOverrideFieldShowCacheHitTokens) && settings.ShowCacheHitTokens != nil {
+			patch.ShowCacheHitTokens = settings.ShowCacheHitTokens
+		}
+		if capabilities.Allows(narrafork_setting.UserOverrideFieldShowCacheHitRate) && settings.ShowCacheHitRate != nil {
+			patch.ShowCacheHitRate = settings.ShowCacheHitRate
+		}
+		if capabilities.Allows(narrafork_setting.UserOverrideFieldShowReasoningTokens) && settings.ShowReasoningTokens != nil {
+			patch.ShowReasoningTokens = settings.ShowReasoningTokens
+		}
+		if capabilities.Allows(narrafork_setting.UserOverrideFieldShowLatency) && settings.ShowLatency != nil {
+			patch.ShowLatency = settings.ShowLatency
+		}
+		if capabilities.Allows(narrafork_setting.UserOverrideFieldShowTTFT) && settings.ShowTTFT != nil {
+			patch.ShowTTFT = settings.ShowTTFT
+		}
+		if capabilities.Allows(narrafork_setting.UserOverrideFieldShowRequestID) && settings.ShowRequestID != nil {
+			patch.ShowRequestID = settings.ShowRequestID
+		}
+		if capabilities.Allows(narrafork_setting.UserOverrideFieldShowRetryCount) && settings.ShowRetryCount != nil {
+			patch.ShowRetryCount = settings.ShowRetryCount
+		}
+		if capabilities.Allows(narrafork_setting.UserOverrideFieldShowModel) && settings.ShowModel != nil {
+			patch.ShowModel = settings.ShowModel
+		}
+		if capabilities.Allows(narrafork_setting.UserOverrideFieldShowBillingSource) && settings.ShowBillingSource != nil {
+			patch.ShowBillingSource = settings.ShowBillingSource
+		}
+		if capabilities.Allows(narrafork_setting.UserOverrideFieldShowUnavailableFields) && settings.ShowUnavailableFields != nil {
+			patch.ShowUnavailableFields = settings.ShowUnavailableFields
+		}
+		if capabilities.Allows(narrafork_setting.UserOverrideFieldDetailTemplate) && settings.DetailTemplate != nil {
+			patch.DetailTemplate = settings.DetailTemplate
+		}
+		if capabilities.Allows(narrafork_setting.UserOverrideFieldCustomQuotaBalance) && settings.CustomQuotaBalance != nil {
+			patch.CustomQuotaBalance = settings.CustomQuotaBalance
+		}
+		if capabilities.Allows(narrafork_setting.UserOverrideFieldCustomDetailedQuotaBalance) && settings.CustomDetailedQuotaBalance != nil {
+			patch.CustomDetailedQuotaBalance = settings.CustomDetailedQuotaBalance
+		}
+
+		ApplyNarraForkPolicyPatch(config, patch)
+	}
+
+	if userSetting.NarraFork == nil || userSetting.NarraFork.Enabled == nil {
+		ApplyNarraForkUserDisplayPreference(
+			config,
+			userSetting.NarraForkDisplayMode,
+			capabilities.Allows(narrafork_setting.UserOverrideFieldEnabled),
+		)
+	}
 }
 
 func ApplyNarraForkChannelSettings(config *NarraForkQuotaEventConfig, settings *dto.NarraForkQuotaEventSettings) {

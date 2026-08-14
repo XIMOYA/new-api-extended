@@ -16,8 +16,8 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { Link2, Settings } from 'lucide-react'
-import { useState } from 'react'
+import { Link2, Settings, Sparkles } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
@@ -27,6 +27,7 @@ import { TitledCard } from '@/components/ui/titled-card'
 
 import type { UserProfile } from '../types'
 import { AccountBindingsTab } from './tabs/account-bindings-tab'
+import { NarraForkSettingsTab } from './tabs/narrafork-settings-tab'
 import { NotificationTab } from './tabs/notification-tab'
 
 // ============================================================================
@@ -46,6 +47,13 @@ export function ProfileSettingsCard({
 }: ProfileSettingsCardProps) {
   const { t } = useTranslation()
   const [activeTab, setActiveTab] = useState('bindings')
+  const narraforkVisible = profile?.narrafork_user_config?.visible === true
+
+  useEffect(() => {
+    if (!narraforkVisible && activeTab === 'narrafork') {
+      setActiveTab('settings')
+    }
+  }, [activeTab, narraforkVisible])
 
   if (loading) {
     return (
@@ -73,7 +81,11 @@ export function ProfileSettingsCard({
       disableHoverEffect
     >
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className='grid w-full grid-cols-2 items-stretch gap-1 rounded-xl p-1 group-data-horizontal/tabs:h-10'>
+        <TabsList
+          className={`grid w-full items-stretch gap-1 rounded-xl p-1 group-data-horizontal/tabs:h-10 ${
+            narraforkVisible ? 'grid-cols-3' : 'grid-cols-2'
+          }`}
+        >
           <TabsTrigger
             value='bindings'
             className='h-full gap-2 rounded-lg px-3 py-0 leading-none'
@@ -92,6 +104,15 @@ export function ProfileSettingsCard({
             </span>
             <span className='sm:hidden'>{t('Settings')}</span>
           </TabsTrigger>
+          {narraforkVisible && (
+            <TabsTrigger
+              value='narrafork'
+              className='h-full gap-2 rounded-lg px-3 py-0 leading-none'
+            >
+              <Sparkles className='h-4 w-4' />
+              <span>{t('NarraFork')}</span>
+            </TabsTrigger>
+          )}
         </TabsList>
 
         <TabsContent value='bindings' className='mt-4 sm:mt-6'>
@@ -101,6 +122,15 @@ export function ProfileSettingsCard({
         <TabsContent value='settings' className='mt-4 sm:mt-6'>
           <NotificationTab profile={profile} onUpdate={onProfileUpdate} />
         </TabsContent>
+
+        {narraforkVisible && (
+          <TabsContent value='narrafork' className='mt-4 sm:mt-6'>
+            <NarraForkSettingsTab
+              profile={profile}
+              onUpdate={onProfileUpdate}
+            />
+          </TabsContent>
+        )}
       </Tabs>
     </TitledCard>
   )

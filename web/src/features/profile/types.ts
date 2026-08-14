@@ -71,6 +71,8 @@ export interface UserProfile {
   setting?: string
   /** Whether the administrator allows personal NarraFork display preferences */
   narrafork_user_display_override_allowed?: boolean
+  /** NarraFork user-level capability and current override values */
+  narrafork_user_config?: NarraForkUserConfig
   /** WeChat ID (OAuth) */
   wechat_id?: string
   /** GitHub ID (OAuth) */
@@ -90,6 +92,74 @@ export interface UserProfile {
  */
 export type NotifyType = 'email' | 'webhook' | 'bark' | 'gotify'
 export type NarraForkDisplayMode = 'inherit' | 'show' | 'hide'
+
+export type NarraForkActivationMode =
+  | 'never'
+  | 'header_only'
+  | 'user_agent_only'
+  | 'header_or_user_agent'
+  | 'always'
+export type NarraForkBalanceSource =
+  | 'effective'
+  | 'user_quota'
+  | 'token_quota'
+  | 'custom'
+export type NarraForkDuplicatePolicy = 'skip' | 'replace' | 'always'
+export type NarraForkTokenDisplayMode = 'exact' | 'compact'
+export type NarraForkCacheHitRateScope = 'request' | 'today' | 'recent_days'
+
+export interface NarraForkUserSettings {
+  enabled?: boolean
+  activation_mode?: NarraForkActivationMode
+  balance_source?: NarraForkBalanceSource
+  include_detailed?: boolean
+  duplicate_policy?: NarraForkDuplicatePolicy
+  expose_extra?: boolean
+  token_display_mode?: NarraForkTokenDisplayMode
+  cache_hit_rate_scope?: NarraForkCacheHitRateScope
+  cache_hit_rate_days?: number
+  show_balance?: boolean
+  show_request_quota?: boolean
+  show_today_quota?: boolean
+  show_today_tokens?: boolean
+  show_month_quota?: boolean
+  show_month_tokens?: boolean
+  show_total_quota?: boolean
+  show_used_quota?: boolean
+  show_input_tokens?: boolean
+  show_output_tokens?: boolean
+  show_total_tokens?: boolean
+  show_cache_hit_tokens?: boolean
+  show_cache_hit_rate?: boolean
+  show_reasoning_tokens?: boolean
+  show_latency?: boolean
+  show_ttft?: boolean
+  show_request_id?: boolean
+  show_retry_count?: boolean
+  show_model?: boolean
+  show_billing_source?: boolean
+  show_unavailable_fields?: boolean
+  detail_template?: string
+  custom_quota_balance?: string
+  custom_detailed_quota_balance?: string
+}
+
+export type NarraForkUserOverrideKey = keyof NarraForkUserSettings
+
+export interface NarraForkUserConfig {
+  visible: boolean
+  allowed_fields: Partial<Record<NarraForkUserOverrideKey, boolean>>
+  global_caps: Partial<Record<NarraForkUserOverrideKey, boolean>>
+  global_values?: Partial<
+    Record<NarraForkUserOverrideKey, boolean | string | number>
+  >
+  activation_modes: NarraForkActivationMode[]
+  balance_sources: NarraForkBalanceSource[]
+  cache_hit_rate_scopes: NarraForkCacheHitRateScope[]
+  max_cache_hit_rate_days: number
+  values?: NarraForkUserSettings
+  legacy_display_mode?: NarraForkDisplayMode
+}
 
 /**
  * Parsed user settings
@@ -123,6 +193,8 @@ export interface UserSettings {
   language?: string
   /** Personal NarraFork display preference */
   narrafork_display_mode?: NarraForkDisplayMode
+  /** Personal NarraFork field overrides */
+  narrafork?: NarraForkUserSettings
 }
 
 /**
@@ -151,6 +223,10 @@ export interface UpdateUserSettingsRequest {
   record_ip_log?: boolean
   upstream_model_update_notify_enabled?: boolean
   narrafork_display_mode?: NarraForkDisplayMode
+}
+
+export interface UpdateNarraForkSettingsRequest {
+  narrafork?: NarraForkUserSettings | null
 }
 
 /**

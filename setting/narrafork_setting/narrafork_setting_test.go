@@ -12,6 +12,45 @@ func TestGetSettingsUsesSafeDefaults(t *testing.T) {
 	if settings.AllowUserDisplayOverride {
 		t.Fatal("user NarraFork display overrides must be disabled by default")
 	}
+	for name, enabled := range map[string]bool{
+		"allow_user_enabled":                       settings.AllowUserEnabled,
+		"allow_user_activation_mode":               settings.AllowUserActivationMode,
+		"allow_user_balance_source":                settings.AllowUserBalanceSource,
+		"allow_user_include_detailed":              settings.AllowUserIncludeDetailed,
+		"allow_user_duplicate_policy":              settings.AllowUserDuplicatePolicy,
+		"allow_user_expose_extra":                  settings.AllowUserExposeExtra,
+		"allow_user_token_display_mode":            settings.AllowUserTokenDisplayMode,
+		"allow_user_cache_hit_rate_scope":          settings.AllowUserCacheHitRateScope,
+		"allow_user_cache_hit_rate_days":           settings.AllowUserCacheHitRateDays,
+		"allow_user_show_balance":                  settings.AllowUserShowBalance,
+		"allow_user_show_request_quota":            settings.AllowUserShowRequestQuota,
+		"allow_user_show_today_quota":              settings.AllowUserShowTodayQuota,
+		"allow_user_show_today_tokens":             settings.AllowUserShowTodayTokens,
+		"allow_user_show_month_quota":              settings.AllowUserShowMonthQuota,
+		"allow_user_show_month_tokens":             settings.AllowUserShowMonthTokens,
+		"allow_user_show_total_quota":              settings.AllowUserShowTotalQuota,
+		"allow_user_show_used_quota":               settings.AllowUserShowUsedQuota,
+		"allow_user_show_input_tokens":             settings.AllowUserShowInputTokens,
+		"allow_user_show_output_tokens":            settings.AllowUserShowOutputTokens,
+		"allow_user_show_total_tokens":             settings.AllowUserShowTotalTokens,
+		"allow_user_show_cache_hit_tokens":         settings.AllowUserShowCacheHitTokens,
+		"allow_user_show_cache_hit_rate":           settings.AllowUserShowCacheHitRate,
+		"allow_user_show_reasoning_tokens":         settings.AllowUserShowReasoningTokens,
+		"allow_user_show_latency":                  settings.AllowUserShowLatency,
+		"allow_user_show_ttft":                     settings.AllowUserShowTTFT,
+		"allow_user_show_request_id":               settings.AllowUserShowRequestID,
+		"allow_user_show_retry_count":              settings.AllowUserShowRetryCount,
+		"allow_user_show_model":                    settings.AllowUserShowModel,
+		"allow_user_show_billing_source":           settings.AllowUserShowBillingSource,
+		"allow_user_show_unavailable_fields":       settings.AllowUserShowUnavailableFields,
+		"allow_user_detail_template":               settings.AllowUserDetailTemplate,
+		"allow_user_custom_quota_balance":          settings.AllowUserCustomQuotaBalance,
+		"allow_user_custom_detailed_quota_balance": settings.AllowUserCustomDetailedQuotaBalance,
+	} {
+		if enabled {
+			t.Fatalf("%s should be disabled by default", name)
+		}
+	}
 	if settings.ActivationMode != ActivationModeHeaderOrUserAgent {
 		t.Fatalf("unexpected activation mode: %q", settings.ActivationMode)
 	}
@@ -98,6 +137,8 @@ func TestValidateOptionRejectsUnknownAndInvalidValues(t *testing.T) {
 	valid := map[string]string{
 		OptionPrefix + "enabled":                     "false",
 		OptionPrefix + "allow_user_display_override": "true",
+		OptionPrefix + "allow_user_enabled":          "true",
+		OptionPrefix + "allow_user_show_balance":     "false",
 		OptionPrefix + "activation_mode":             ActivationModeHeaderOnly,
 		OptionPrefix + "balance_source":              BalanceSourceCustom,
 		OptionPrefix + "duplicate_policy":            DuplicatePolicyReplace,
@@ -119,6 +160,7 @@ func TestValidateOptionRejectsUnknownAndInvalidValues(t *testing.T) {
 	invalid := map[string]string{
 		OptionPrefix + "enabled":                     "not-a-bool",
 		OptionPrefix + "allow_user_display_override": "not-a-bool",
+		OptionPrefix + "allow_user_enabled":          "not-a-bool",
 		OptionPrefix + "activation_mode":             "unknown",
 		OptionPrefix + "balance_source":              "unknown",
 		OptionPrefix + "duplicate_policy":            "unknown",

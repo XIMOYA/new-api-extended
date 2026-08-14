@@ -10,6 +10,7 @@ import (
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/logger"
 	"github.com/QuantumNous/new-api/relaykit/dto"
+	"github.com/QuantumNous/new-api/setting/narrafork_setting"
 	"github.com/QuantumNous/new-api/setting/operation_setting"
 
 	"github.com/bytedance/gopkg/util/gopool"
@@ -188,6 +189,27 @@ func UpdateUserSetting(userId int, setting dto.UserSetting) error {
 		return err
 	}
 	return updateUserSettingCache(userId, settingValue)
+}
+
+func UpdateUserNarraForkSettings(userId int, narrafork *dto.NarraForkUserSettings) error {
+	if userId == 0 {
+		return errors.New("id 为空！")
+	}
+	user, err := GetUserById(userId, true)
+	if err != nil {
+		return err
+	}
+	settings := user.GetSetting()
+	settings.NarraFork = narrafork
+	switch {
+	case narrafork == nil || narrafork.Enabled == nil:
+		settings.NarraForkDisplayMode = narrafork_setting.UserDisplayModeInherit
+	case *narrafork.Enabled:
+		settings.NarraForkDisplayMode = narrafork_setting.UserDisplayModeShow
+	default:
+		settings.NarraForkDisplayMode = narrafork_setting.UserDisplayModeHide
+	}
+	return UpdateUserSetting(userId, settings)
 }
 
 // 根据用户角色生成默认的边栏配置

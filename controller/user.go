@@ -508,6 +508,7 @@ func GetSelf(c *gin.Context) {
 // administrator-only remarks.
 func buildSelfUserData(user *model.User) map[string]interface{} {
 	userSetting := user.GetSetting()
+	narraforkCapabilities := narrafork_setting.BuildNarraForkUserOverrideCapabilities(narrafork_setting.GetSettings())
 	permissions := calculateUserPermissions(user.Role)
 	permissions["admin_permissions"] = authz.Capabilities(user.Id, user.Role)
 	return map[string]interface{}{
@@ -536,6 +537,18 @@ func buildSelfUserData(user *model.User) map[string]interface{} {
 		"stripe_customer":   user.StripeCustomer,
 		"sidebar_modules":   userSetting.SidebarModules, // 正确提取sidebar_modules字段
 		"narrafork_user_display_override_allowed": narrafork_setting.GetSettings().AllowUserDisplayOverride,
+		"narrafork_user_config": map[string]interface{}{
+			"visible":                 narraforkCapabilities.Visible,
+			"allowed_fields":          narraforkCapabilities.AllowedFields,
+			"global_caps":             narraforkCapabilities.GlobalCaps,
+			"global_values":           narraforkCapabilities.GlobalValues,
+			"activation_modes":        narraforkCapabilities.ActivationModes,
+			"balance_sources":         narraforkCapabilities.BalanceSources,
+			"cache_hit_rate_scopes":   narraforkCapabilities.CacheHitRateScopes,
+			"max_cache_hit_rate_days": narraforkCapabilities.MaxCacheHitRateDays,
+			"values":                  userSetting.NarraFork,
+			"legacy_display_mode":     userSetting.NarraForkDisplayMode,
+		},
 		"permissions": permissions,
 	}
 }
@@ -1516,6 +1529,7 @@ func UpdateUserSetting(c *gin.Context) {
 		AcceptUnsetRatioModel:            req.AcceptUnsetModelRatioModel,
 		RecordIpLog:                      req.RecordIpLog,
 		NarraForkDisplayMode:             narraForkDisplayMode,
+		NarraFork:                        existingSettings.NarraFork,
 	}
 
 	// 如果是webhook类型,添加webhook相关设置

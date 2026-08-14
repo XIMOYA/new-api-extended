@@ -44,40 +44,73 @@ const (
 )
 
 type NarraForkSetting struct {
-	Enabled                    bool   `json:"enabled"`
-	ActivationMode             string `json:"activation_mode"`
-	BalanceSource              string `json:"balance_source"`
-	IncludeDetailed            bool   `json:"include_detailed"`
-	DuplicatePolicy            string `json:"duplicate_policy"`
-	ExposeExtra                bool   `json:"expose_extra"`
-	TokenDisplayMode           string `json:"token_display_mode"`
-	AllowUserDisplayOverride   bool   `json:"allow_user_display_override"`
-	CacheHitRateScope          string `json:"cache_hit_rate_scope"`
-	CacheHitRateDays           int    `json:"cache_hit_rate_days"`
-	ShowBalance                bool   `json:"show_balance"`
-	ShowRequestQuota           bool   `json:"show_request_quota"`
-	ShowTodayQuota             bool   `json:"show_today_quota"`
-	ShowTodayTokens            bool   `json:"show_today_tokens"`
-	ShowMonthQuota             bool   `json:"show_month_quota"`
-	ShowMonthTokens            bool   `json:"show_month_tokens"`
-	ShowTotalQuota             bool   `json:"show_total_quota"`
-	ShowUsedQuota              bool   `json:"show_used_quota"`
-	ShowInputTokens            bool   `json:"show_input_tokens"`
-	ShowOutputTokens           bool   `json:"show_output_tokens"`
-	ShowTotalTokens            bool   `json:"show_total_tokens"`
-	ShowCacheHitTokens         bool   `json:"show_cache_hit_tokens"`
-	ShowCacheHitRate           bool   `json:"show_cache_hit_rate"`
-	ShowReasoningTokens        bool   `json:"show_reasoning_tokens"`
-	ShowLatency                bool   `json:"show_latency"`
-	ShowTTFT                   bool   `json:"show_ttft"`
-	ShowRequestID              bool   `json:"show_request_id"`
-	ShowRetryCount             bool   `json:"show_retry_count"`
-	ShowModel                  bool   `json:"show_model"`
-	ShowBillingSource          bool   `json:"show_billing_source"`
-	ShowUnavailableFields      bool   `json:"show_unavailable_fields"`
-	DetailTemplate             string `json:"detail_template"`
-	CustomQuotaBalance         string `json:"custom_quota_balance"`
-	CustomDetailedQuotaBalance string `json:"custom_detailed_quota_balance"`
+	Enabled                             bool   `json:"enabled"`
+	ActivationMode                      string `json:"activation_mode"`
+	BalanceSource                       string `json:"balance_source"`
+	IncludeDetailed                     bool   `json:"include_detailed"`
+	DuplicatePolicy                     string `json:"duplicate_policy"`
+	ExposeExtra                         bool   `json:"expose_extra"`
+	TokenDisplayMode                    string `json:"token_display_mode"`
+	AllowUserDisplayOverride            bool   `json:"allow_user_display_override"`
+	AllowUserEnabled                    bool   `json:"allow_user_enabled"`
+	AllowUserActivationMode             bool   `json:"allow_user_activation_mode"`
+	AllowUserBalanceSource              bool   `json:"allow_user_balance_source"`
+	AllowUserIncludeDetailed            bool   `json:"allow_user_include_detailed"`
+	AllowUserDuplicatePolicy            bool   `json:"allow_user_duplicate_policy"`
+	AllowUserExposeExtra                bool   `json:"allow_user_expose_extra"`
+	AllowUserTokenDisplayMode           bool   `json:"allow_user_token_display_mode"`
+	AllowUserCacheHitRateScope          bool   `json:"allow_user_cache_hit_rate_scope"`
+	AllowUserCacheHitRateDays           bool   `json:"allow_user_cache_hit_rate_days"`
+	CacheHitRateScope                   string `json:"cache_hit_rate_scope"`
+	CacheHitRateDays                    int    `json:"cache_hit_rate_days"`
+	AllowUserShowBalance                bool   `json:"allow_user_show_balance"`
+	AllowUserShowRequestQuota           bool   `json:"allow_user_show_request_quota"`
+	AllowUserShowTodayQuota             bool   `json:"allow_user_show_today_quota"`
+	AllowUserShowTodayTokens            bool   `json:"allow_user_show_today_tokens"`
+	AllowUserShowMonthQuota             bool   `json:"allow_user_show_month_quota"`
+	AllowUserShowMonthTokens            bool   `json:"allow_user_show_month_tokens"`
+	AllowUserShowTotalQuota             bool   `json:"allow_user_show_total_quota"`
+	AllowUserShowUsedQuota              bool   `json:"allow_user_show_used_quota"`
+	AllowUserShowInputTokens            bool   `json:"allow_user_show_input_tokens"`
+	AllowUserShowOutputTokens           bool   `json:"allow_user_show_output_tokens"`
+	AllowUserShowTotalTokens            bool   `json:"allow_user_show_total_tokens"`
+	AllowUserShowCacheHitTokens         bool   `json:"allow_user_show_cache_hit_tokens"`
+	AllowUserShowCacheHitRate           bool   `json:"allow_user_show_cache_hit_rate"`
+	AllowUserShowReasoningTokens        bool   `json:"allow_user_show_reasoning_tokens"`
+	AllowUserShowLatency                bool   `json:"allow_user_show_latency"`
+	AllowUserShowTTFT                   bool   `json:"allow_user_show_ttft"`
+	AllowUserShowRequestID              bool   `json:"allow_user_show_request_id"`
+	AllowUserShowRetryCount             bool   `json:"allow_user_show_retry_count"`
+	AllowUserShowModel                  bool   `json:"allow_user_show_model"`
+	AllowUserShowBillingSource          bool   `json:"allow_user_show_billing_source"`
+	AllowUserShowUnavailableFields      bool   `json:"allow_user_show_unavailable_fields"`
+	AllowUserDetailTemplate             bool   `json:"allow_user_detail_template"`
+	AllowUserCustomQuotaBalance         bool   `json:"allow_user_custom_quota_balance"`
+	AllowUserCustomDetailedQuotaBalance bool   `json:"allow_user_custom_detailed_quota_balance"`
+	ShowBalance                         bool   `json:"show_balance"`
+	ShowRequestQuota                    bool   `json:"show_request_quota"`
+	ShowTodayQuota                      bool   `json:"show_today_quota"`
+	ShowTodayTokens                     bool   `json:"show_today_tokens"`
+	ShowMonthQuota                      bool   `json:"show_month_quota"`
+	ShowMonthTokens                     bool   `json:"show_month_tokens"`
+	ShowTotalQuota                      bool   `json:"show_total_quota"`
+	ShowUsedQuota                       bool   `json:"show_used_quota"`
+	ShowInputTokens                     bool   `json:"show_input_tokens"`
+	ShowOutputTokens                    bool   `json:"show_output_tokens"`
+	ShowTotalTokens                     bool   `json:"show_total_tokens"`
+	ShowCacheHitTokens                  bool   `json:"show_cache_hit_tokens"`
+	ShowCacheHitRate                    bool   `json:"show_cache_hit_rate"`
+	ShowReasoningTokens                 bool   `json:"show_reasoning_tokens"`
+	ShowLatency                         bool   `json:"show_latency"`
+	ShowTTFT                            bool   `json:"show_ttft"`
+	ShowRequestID                       bool   `json:"show_request_id"`
+	ShowRetryCount                      bool   `json:"show_retry_count"`
+	ShowModel                           bool   `json:"show_model"`
+	ShowBillingSource                   bool   `json:"show_billing_source"`
+	ShowUnavailableFields               bool   `json:"show_unavailable_fields"`
+	DetailTemplate                      string `json:"detail_template"`
+	CustomQuotaBalance                  string `json:"custom_quota_balance"`
+	CustomDetailedQuotaBalance          string `json:"custom_detailed_quota_balance"`
 }
 
 var narraForkSetting = NarraForkSetting{
@@ -89,6 +122,15 @@ var narraForkSetting = NarraForkSetting{
 	ExposeExtra:                false,
 	TokenDisplayMode:           TokenDisplayModeExact,
 	AllowUserDisplayOverride:   false,
+	AllowUserEnabled:           false,
+	AllowUserActivationMode:    false,
+	AllowUserBalanceSource:     false,
+	AllowUserIncludeDetailed:   false,
+	AllowUserDuplicatePolicy:   false,
+	AllowUserExposeExtra:       false,
+	AllowUserTokenDisplayMode:  false,
+	AllowUserCacheHitRateScope: false,
+	AllowUserCacheHitRateDays:  false,
 	CacheHitRateScope:          CacheHitRateScopeRequest,
 	CacheHitRateDays:           DefaultCacheHitRateDays,
 	ShowBalance:                true,
@@ -214,7 +256,18 @@ func ValidateOption(key string, value string) error {
 
 	field := strings.TrimPrefix(strings.TrimSpace(key), OptionPrefix)
 	switch field {
-	case "enabled", "allow_user_display_override", "include_detailed", "expose_extra",
+	case "enabled", "allow_user_display_override", "allow_user_enabled", "allow_user_activation_mode",
+		"allow_user_balance_source", "allow_user_include_detailed", "allow_user_duplicate_policy",
+		"allow_user_expose_extra", "allow_user_token_display_mode", "allow_user_cache_hit_rate_scope",
+		"allow_user_cache_hit_rate_days", "allow_user_show_balance", "allow_user_show_request_quota",
+		"allow_user_show_today_quota", "allow_user_show_today_tokens", "allow_user_show_month_quota",
+		"allow_user_show_month_tokens", "allow_user_show_total_quota", "allow_user_show_used_quota",
+		"allow_user_show_input_tokens", "allow_user_show_output_tokens", "allow_user_show_total_tokens",
+		"allow_user_show_cache_hit_tokens", "allow_user_show_cache_hit_rate", "allow_user_show_reasoning_tokens",
+		"allow_user_show_latency", "allow_user_show_ttft", "allow_user_show_request_id",
+		"allow_user_show_retry_count", "allow_user_show_model", "allow_user_show_billing_source",
+		"allow_user_show_unavailable_fields", "allow_user_detail_template", "allow_user_custom_quota_balance",
+		"allow_user_custom_detailed_quota_balance", "include_detailed", "expose_extra",
 		"show_balance", "show_request_quota", "show_today_quota", "show_today_tokens",
 		"show_month_quota", "show_month_tokens", "show_total_quota", "show_used_quota",
 		"show_input_tokens", "show_output_tokens", "show_total_tokens", "show_cache_hit_tokens",

@@ -25,13 +25,6 @@ import { PasswordInput } from '@/components/password-input'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { ROLE } from '@/lib/roles'
@@ -42,12 +35,7 @@ import {
   NOTIFICATION_METHODS,
 } from '../../constants'
 import { parseUserSettings } from '../../lib'
-import type {
-  NarraForkDisplayMode,
-  UserProfile,
-  UserSettings,
-  NotifyType,
-} from '../../types'
+import type { UserProfile, UserSettings, NotifyType } from '../../types'
 
 const NOTIFICATION_ICONS: Record<NotifyType, typeof Mail> = {
   email: Mail,
@@ -65,19 +53,6 @@ function normalizeNotifyType(value: unknown): NotifyType {
     NOTIFICATION_VALUES.has(value as NotifyType)
     ? (value as NotifyType)
     : 'email'
-}
-
-const NARRAFORK_DISPLAY_MODES: NarraForkDisplayMode[] = [
-  'inherit',
-  'show',
-  'hide',
-]
-
-function normalizeNarraForkDisplayMode(value: unknown): NarraForkDisplayMode {
-  return typeof value === 'string' &&
-    NARRAFORK_DISPLAY_MODES.includes(value as NarraForkDisplayMode)
-    ? (value as NarraForkDisplayMode)
-    : 'inherit'
 }
 
 // ============================================================================
@@ -106,7 +81,6 @@ export function NotificationTab({ profile, onUpdate }: NotificationTabProps) {
     accept_unset_model_ratio_model: false,
     record_ip_log: false,
     upstream_model_update_notify_enabled: false,
-    narrafork_display_mode: 'inherit',
   })
 
   // Update form field helper
@@ -136,9 +110,6 @@ export function NotificationTab({ profile, onUpdate }: NotificationTabProps) {
         record_ip_log: parsed.record_ip_log || false,
         upstream_model_update_notify_enabled:
           parsed.upstream_model_update_notify_enabled || false,
-        narrafork_display_mode: normalizeNarraForkDisplayMode(
-          parsed.narrafork_display_mode
-        ),
       })
     }
   }, [profile])
@@ -154,7 +125,7 @@ export function NotificationTab({ profile, onUpdate }: NotificationTabProps) {
       } else {
         toast.error(response.message || t('Failed to update settings'))
       }
-    } catch (_error) {
+    } catch {
       toast.error(t('Failed to update settings'))
     } finally {
       setLoading(false)
@@ -172,8 +143,9 @@ export function NotificationTab({ profile, onUpdate }: NotificationTabProps) {
           value={[notifyType]}
           onValueChange={(value) => {
             const nextValue = value.find((item) => item !== notifyType)
-            if (nextValue)
+            if (nextValue) {
               updateField('notify_type', normalizeNotifyType(nextValue))
+            }
           }}
           aria-label={t('Notification Method')}
           variant='outline'
@@ -360,50 +332,6 @@ export function NotificationTab({ profile, onUpdate }: NotificationTabProps) {
             {t('Configure your account behavior preferences')}
           </p>
         </div>
-
-        {profile?.narrafork_user_display_override_allowed && (
-          <div className='space-y-1.5 rounded-lg border p-3 sm:p-4'>
-            <Label htmlFor='narraforkDisplayMode'>
-              {t('NarraFork display preference')}
-            </Label>
-            <Select
-              items={[
-                { value: 'inherit', label: t('Follow global setting') },
-                { value: 'show', label: t('Show NarraFork information') },
-                { value: 'hide', label: t('Hide NarraFork information') },
-              ]}
-              value={settings.narrafork_display_mode}
-              onValueChange={(value) => {
-                if (value) {
-                  updateField(
-                    'narrafork_display_mode',
-                    normalizeNarraForkDisplayMode(value)
-                  )
-                }
-              }}
-            >
-              <SelectTrigger id='narraforkDisplayMode' className='w-full'>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent alignItemWithTrigger={false}>
-                <SelectItem value='inherit'>
-                  {t('Follow global setting')}
-                </SelectItem>
-                <SelectItem value='show'>
-                  {t('Show NarraFork information')}
-                </SelectItem>
-                <SelectItem value='hide'>
-                  {t('Hide NarraFork information')}
-                </SelectItem>
-              </SelectContent>
-            </Select>
-            <p className='text-muted-foreground text-xs sm:text-sm'>
-              {t(
-                'Choose whether this account receives NarraFork quota information.'
-              )}
-            </p>
-          </div>
-        )}
 
         {/* Receive Upstream Model Update Notifications (admin only) */}
         {isAdmin && (

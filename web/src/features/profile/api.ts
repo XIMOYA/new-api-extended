@@ -24,6 +24,7 @@ import type {
   UserProfile,
   UpdateUserRequest,
   UpdateUserSettingsRequest,
+  UpdateNarraForkSettingsRequest,
   DeleteAccountRequest,
   CheckinStatusResponse,
   CheckinResponse,
@@ -60,6 +61,16 @@ export async function updateUserSettings(
   data: UpdateUserSettingsRequest
 ): Promise<ApiResponse> {
   const res = await api.put('/api/user/setting', data)
+  return res.data
+}
+
+/**
+ * Update NarraFork user-level overrides without touching other preferences
+ */
+export async function updateNarraForkSettings(
+  data: UpdateNarraForkSettingsRequest
+): Promise<ApiResponse> {
+  const res = await api.put('/api/user/narrafork-settings', data)
   return res.data
 }
 

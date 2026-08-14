@@ -23,7 +23,6 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
 import {
   Select,
   SelectContent,
@@ -32,6 +31,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
+import { Textarea } from '@/components/ui/textarea'
 
 import {
   SettingsControlGroup,
@@ -67,6 +67,39 @@ const narraforkSchema = z.object({
   narrafork_setting: z.object({
     enabled: z.boolean(),
     allow_user_display_override: z.boolean(),
+    allow_user_enabled: z.boolean(),
+    allow_user_activation_mode: z.boolean(),
+    allow_user_balance_source: z.boolean(),
+    allow_user_include_detailed: z.boolean(),
+    allow_user_duplicate_policy: z.boolean(),
+    allow_user_expose_extra: z.boolean(),
+    allow_user_token_display_mode: z.boolean(),
+    allow_user_cache_hit_rate_scope: z.boolean(),
+    allow_user_cache_hit_rate_days: z.boolean(),
+    allow_user_show_balance: z.boolean(),
+    allow_user_show_request_quota: z.boolean(),
+    allow_user_show_today_quota: z.boolean(),
+    allow_user_show_today_tokens: z.boolean(),
+    allow_user_show_month_quota: z.boolean(),
+    allow_user_show_month_tokens: z.boolean(),
+    allow_user_show_total_quota: z.boolean(),
+    allow_user_show_used_quota: z.boolean(),
+    allow_user_show_input_tokens: z.boolean(),
+    allow_user_show_output_tokens: z.boolean(),
+    allow_user_show_total_tokens: z.boolean(),
+    allow_user_show_cache_hit_tokens: z.boolean(),
+    allow_user_show_cache_hit_rate: z.boolean(),
+    allow_user_show_reasoning_tokens: z.boolean(),
+    allow_user_show_latency: z.boolean(),
+    allow_user_show_ttft: z.boolean(),
+    allow_user_show_request_id: z.boolean(),
+    allow_user_show_retry_count: z.boolean(),
+    allow_user_show_model: z.boolean(),
+    allow_user_show_billing_source: z.boolean(),
+    allow_user_show_unavailable_fields: z.boolean(),
+    allow_user_detail_template: z.boolean(),
+    allow_user_custom_quota_balance: z.boolean(),
+    allow_user_custom_detailed_quota_balance: z.boolean(),
     activation_mode: z.enum(activationModes),
     balance_source: z.enum(balanceSources),
     include_detailed: z.boolean(),
@@ -108,6 +141,39 @@ type NarraForkFormValues = z.output<typeof narraforkSchema>
 type FlatNarraForkDefaults = {
   'narrafork_setting.enabled': boolean
   'narrafork_setting.allow_user_display_override': boolean
+  'narrafork_setting.allow_user_enabled': boolean
+  'narrafork_setting.allow_user_activation_mode': boolean
+  'narrafork_setting.allow_user_balance_source': boolean
+  'narrafork_setting.allow_user_include_detailed': boolean
+  'narrafork_setting.allow_user_duplicate_policy': boolean
+  'narrafork_setting.allow_user_expose_extra': boolean
+  'narrafork_setting.allow_user_token_display_mode': boolean
+  'narrafork_setting.allow_user_cache_hit_rate_scope': boolean
+  'narrafork_setting.allow_user_cache_hit_rate_days': boolean
+  'narrafork_setting.allow_user_show_balance': boolean
+  'narrafork_setting.allow_user_show_request_quota': boolean
+  'narrafork_setting.allow_user_show_today_quota': boolean
+  'narrafork_setting.allow_user_show_today_tokens': boolean
+  'narrafork_setting.allow_user_show_month_quota': boolean
+  'narrafork_setting.allow_user_show_month_tokens': boolean
+  'narrafork_setting.allow_user_show_total_quota': boolean
+  'narrafork_setting.allow_user_show_used_quota': boolean
+  'narrafork_setting.allow_user_show_input_tokens': boolean
+  'narrafork_setting.allow_user_show_output_tokens': boolean
+  'narrafork_setting.allow_user_show_total_tokens': boolean
+  'narrafork_setting.allow_user_show_cache_hit_tokens': boolean
+  'narrafork_setting.allow_user_show_cache_hit_rate': boolean
+  'narrafork_setting.allow_user_show_reasoning_tokens': boolean
+  'narrafork_setting.allow_user_show_latency': boolean
+  'narrafork_setting.allow_user_show_ttft': boolean
+  'narrafork_setting.allow_user_show_request_id': boolean
+  'narrafork_setting.allow_user_show_retry_count': boolean
+  'narrafork_setting.allow_user_show_model': boolean
+  'narrafork_setting.allow_user_show_billing_source': boolean
+  'narrafork_setting.allow_user_show_unavailable_fields': boolean
+  'narrafork_setting.allow_user_detail_template': boolean
+  'narrafork_setting.allow_user_custom_quota_balance': boolean
+  'narrafork_setting.allow_user_custom_detailed_quota_balance': boolean
   'narrafork_setting.activation_mode': (typeof activationModes)[number]
   'narrafork_setting.balance_source': (typeof balanceSources)[number]
   'narrafork_setting.include_detailed': boolean
@@ -150,6 +216,70 @@ function buildFormDefaults(
       enabled: defaults['narrafork_setting.enabled'],
       allow_user_display_override:
         defaults['narrafork_setting.allow_user_display_override'],
+      allow_user_enabled: defaults['narrafork_setting.allow_user_enabled'],
+      allow_user_activation_mode:
+        defaults['narrafork_setting.allow_user_activation_mode'],
+      allow_user_balance_source:
+        defaults['narrafork_setting.allow_user_balance_source'],
+      allow_user_include_detailed:
+        defaults['narrafork_setting.allow_user_include_detailed'],
+      allow_user_duplicate_policy:
+        defaults['narrafork_setting.allow_user_duplicate_policy'],
+      allow_user_expose_extra:
+        defaults['narrafork_setting.allow_user_expose_extra'],
+      allow_user_token_display_mode:
+        defaults['narrafork_setting.allow_user_token_display_mode'],
+      allow_user_cache_hit_rate_scope:
+        defaults['narrafork_setting.allow_user_cache_hit_rate_scope'],
+      allow_user_cache_hit_rate_days:
+        defaults['narrafork_setting.allow_user_cache_hit_rate_days'],
+      allow_user_show_balance:
+        defaults['narrafork_setting.allow_user_show_balance'],
+      allow_user_show_request_quota:
+        defaults['narrafork_setting.allow_user_show_request_quota'],
+      allow_user_show_today_quota:
+        defaults['narrafork_setting.allow_user_show_today_quota'],
+      allow_user_show_today_tokens:
+        defaults['narrafork_setting.allow_user_show_today_tokens'],
+      allow_user_show_month_quota:
+        defaults['narrafork_setting.allow_user_show_month_quota'],
+      allow_user_show_month_tokens:
+        defaults['narrafork_setting.allow_user_show_month_tokens'],
+      allow_user_show_total_quota:
+        defaults['narrafork_setting.allow_user_show_total_quota'],
+      allow_user_show_used_quota:
+        defaults['narrafork_setting.allow_user_show_used_quota'],
+      allow_user_show_input_tokens:
+        defaults['narrafork_setting.allow_user_show_input_tokens'],
+      allow_user_show_output_tokens:
+        defaults['narrafork_setting.allow_user_show_output_tokens'],
+      allow_user_show_total_tokens:
+        defaults['narrafork_setting.allow_user_show_total_tokens'],
+      allow_user_show_cache_hit_tokens:
+        defaults['narrafork_setting.allow_user_show_cache_hit_tokens'],
+      allow_user_show_cache_hit_rate:
+        defaults['narrafork_setting.allow_user_show_cache_hit_rate'],
+      allow_user_show_reasoning_tokens:
+        defaults['narrafork_setting.allow_user_show_reasoning_tokens'],
+      allow_user_show_latency:
+        defaults['narrafork_setting.allow_user_show_latency'],
+      allow_user_show_ttft: defaults['narrafork_setting.allow_user_show_ttft'],
+      allow_user_show_request_id:
+        defaults['narrafork_setting.allow_user_show_request_id'],
+      allow_user_show_retry_count:
+        defaults['narrafork_setting.allow_user_show_retry_count'],
+      allow_user_show_model:
+        defaults['narrafork_setting.allow_user_show_model'],
+      allow_user_show_billing_source:
+        defaults['narrafork_setting.allow_user_show_billing_source'],
+      allow_user_show_unavailable_fields:
+        defaults['narrafork_setting.allow_user_show_unavailable_fields'],
+      allow_user_detail_template:
+        defaults['narrafork_setting.allow_user_detail_template'],
+      allow_user_custom_quota_balance:
+        defaults['narrafork_setting.allow_user_custom_quota_balance'],
+      allow_user_custom_detailed_quota_balance:
+        defaults['narrafork_setting.allow_user_custom_detailed_quota_balance'],
       activation_mode: defaults['narrafork_setting.activation_mode'],
       balance_source: defaults['narrafork_setting.balance_source'],
       include_detailed: defaults['narrafork_setting.include_detailed'],
@@ -169,9 +299,11 @@ function buildFormDefaults(
       show_input_tokens: defaults['narrafork_setting.show_input_tokens'],
       show_output_tokens: defaults['narrafork_setting.show_output_tokens'],
       show_total_tokens: defaults['narrafork_setting.show_total_tokens'],
-      show_cache_hit_tokens: defaults['narrafork_setting.show_cache_hit_tokens'],
+      show_cache_hit_tokens:
+        defaults['narrafork_setting.show_cache_hit_tokens'],
       show_cache_hit_rate: defaults['narrafork_setting.show_cache_hit_rate'],
-      show_reasoning_tokens: defaults['narrafork_setting.show_reasoning_tokens'],
+      show_reasoning_tokens:
+        defaults['narrafork_setting.show_reasoning_tokens'],
       show_latency: defaults['narrafork_setting.show_latency'],
       show_ttft: defaults['narrafork_setting.show_ttft'],
       show_request_id: defaults['narrafork_setting.show_request_id'],
@@ -193,6 +325,72 @@ function flattenFormValues(values: NarraForkFormValues): FlatNarraForkDefaults {
     'narrafork_setting.enabled': values.narrafork_setting.enabled,
     'narrafork_setting.allow_user_display_override':
       values.narrafork_setting.allow_user_display_override,
+    'narrafork_setting.allow_user_enabled':
+      values.narrafork_setting.allow_user_enabled,
+    'narrafork_setting.allow_user_activation_mode':
+      values.narrafork_setting.allow_user_activation_mode,
+    'narrafork_setting.allow_user_balance_source':
+      values.narrafork_setting.allow_user_balance_source,
+    'narrafork_setting.allow_user_include_detailed':
+      values.narrafork_setting.allow_user_include_detailed,
+    'narrafork_setting.allow_user_duplicate_policy':
+      values.narrafork_setting.allow_user_duplicate_policy,
+    'narrafork_setting.allow_user_expose_extra':
+      values.narrafork_setting.allow_user_expose_extra,
+    'narrafork_setting.allow_user_token_display_mode':
+      values.narrafork_setting.allow_user_token_display_mode,
+    'narrafork_setting.allow_user_cache_hit_rate_scope':
+      values.narrafork_setting.allow_user_cache_hit_rate_scope,
+    'narrafork_setting.allow_user_cache_hit_rate_days':
+      values.narrafork_setting.allow_user_cache_hit_rate_days,
+    'narrafork_setting.allow_user_show_balance':
+      values.narrafork_setting.allow_user_show_balance,
+    'narrafork_setting.allow_user_show_request_quota':
+      values.narrafork_setting.allow_user_show_request_quota,
+    'narrafork_setting.allow_user_show_today_quota':
+      values.narrafork_setting.allow_user_show_today_quota,
+    'narrafork_setting.allow_user_show_today_tokens':
+      values.narrafork_setting.allow_user_show_today_tokens,
+    'narrafork_setting.allow_user_show_month_quota':
+      values.narrafork_setting.allow_user_show_month_quota,
+    'narrafork_setting.allow_user_show_month_tokens':
+      values.narrafork_setting.allow_user_show_month_tokens,
+    'narrafork_setting.allow_user_show_total_quota':
+      values.narrafork_setting.allow_user_show_total_quota,
+    'narrafork_setting.allow_user_show_used_quota':
+      values.narrafork_setting.allow_user_show_used_quota,
+    'narrafork_setting.allow_user_show_input_tokens':
+      values.narrafork_setting.allow_user_show_input_tokens,
+    'narrafork_setting.allow_user_show_output_tokens':
+      values.narrafork_setting.allow_user_show_output_tokens,
+    'narrafork_setting.allow_user_show_total_tokens':
+      values.narrafork_setting.allow_user_show_total_tokens,
+    'narrafork_setting.allow_user_show_cache_hit_tokens':
+      values.narrafork_setting.allow_user_show_cache_hit_tokens,
+    'narrafork_setting.allow_user_show_cache_hit_rate':
+      values.narrafork_setting.allow_user_show_cache_hit_rate,
+    'narrafork_setting.allow_user_show_reasoning_tokens':
+      values.narrafork_setting.allow_user_show_reasoning_tokens,
+    'narrafork_setting.allow_user_show_latency':
+      values.narrafork_setting.allow_user_show_latency,
+    'narrafork_setting.allow_user_show_ttft':
+      values.narrafork_setting.allow_user_show_ttft,
+    'narrafork_setting.allow_user_show_request_id':
+      values.narrafork_setting.allow_user_show_request_id,
+    'narrafork_setting.allow_user_show_retry_count':
+      values.narrafork_setting.allow_user_show_retry_count,
+    'narrafork_setting.allow_user_show_model':
+      values.narrafork_setting.allow_user_show_model,
+    'narrafork_setting.allow_user_show_billing_source':
+      values.narrafork_setting.allow_user_show_billing_source,
+    'narrafork_setting.allow_user_show_unavailable_fields':
+      values.narrafork_setting.allow_user_show_unavailable_fields,
+    'narrafork_setting.allow_user_detail_template':
+      values.narrafork_setting.allow_user_detail_template,
+    'narrafork_setting.allow_user_custom_quota_balance':
+      values.narrafork_setting.allow_user_custom_quota_balance,
+    'narrafork_setting.allow_user_custom_detailed_quota_balance':
+      values.narrafork_setting.allow_user_custom_detailed_quota_balance,
     'narrafork_setting.activation_mode':
       values.narrafork_setting.activation_mode,
     'narrafork_setting.balance_source': values.narrafork_setting.balance_source,
@@ -236,8 +434,10 @@ function flattenFormValues(values: NarraForkFormValues): FlatNarraForkDefaults {
       values.narrafork_setting.show_reasoning_tokens,
     'narrafork_setting.show_latency': values.narrafork_setting.show_latency,
     'narrafork_setting.show_ttft': values.narrafork_setting.show_ttft,
-    'narrafork_setting.show_request_id': values.narrafork_setting.show_request_id,
-    'narrafork_setting.show_retry_count': values.narrafork_setting.show_retry_count,
+    'narrafork_setting.show_request_id':
+      values.narrafork_setting.show_request_id,
+    'narrafork_setting.show_retry_count':
+      values.narrafork_setting.show_retry_count,
     'narrafork_setting.show_model': values.narrafork_setting.show_model,
     'narrafork_setting.show_billing_source':
       values.narrafork_setting.show_billing_source,
@@ -278,6 +478,78 @@ type NarraForkDisplayOptionName =
   | 'narrafork_setting.show_model'
   | 'narrafork_setting.show_billing_source'
   | 'narrafork_setting.show_unavailable_fields'
+
+type NarraForkUserPermissionName =
+  | 'narrafork_setting.allow_user_enabled'
+  | 'narrafork_setting.allow_user_activation_mode'
+  | 'narrafork_setting.allow_user_balance_source'
+  | 'narrafork_setting.allow_user_include_detailed'
+  | 'narrafork_setting.allow_user_duplicate_policy'
+  | 'narrafork_setting.allow_user_expose_extra'
+  | 'narrafork_setting.allow_user_token_display_mode'
+  | 'narrafork_setting.allow_user_cache_hit_rate_scope'
+  | 'narrafork_setting.allow_user_cache_hit_rate_days'
+  | 'narrafork_setting.allow_user_show_balance'
+  | 'narrafork_setting.allow_user_show_request_quota'
+  | 'narrafork_setting.allow_user_show_today_quota'
+  | 'narrafork_setting.allow_user_show_today_tokens'
+  | 'narrafork_setting.allow_user_show_month_quota'
+  | 'narrafork_setting.allow_user_show_month_tokens'
+  | 'narrafork_setting.allow_user_show_total_quota'
+  | 'narrafork_setting.allow_user_show_used_quota'
+  | 'narrafork_setting.allow_user_show_input_tokens'
+  | 'narrafork_setting.allow_user_show_output_tokens'
+  | 'narrafork_setting.allow_user_show_total_tokens'
+  | 'narrafork_setting.allow_user_show_cache_hit_tokens'
+  | 'narrafork_setting.allow_user_show_cache_hit_rate'
+  | 'narrafork_setting.allow_user_show_reasoning_tokens'
+  | 'narrafork_setting.allow_user_show_latency'
+  | 'narrafork_setting.allow_user_show_ttft'
+  | 'narrafork_setting.allow_user_show_request_id'
+  | 'narrafork_setting.allow_user_show_retry_count'
+  | 'narrafork_setting.allow_user_show_model'
+  | 'narrafork_setting.allow_user_show_billing_source'
+  | 'narrafork_setting.allow_user_show_unavailable_fields'
+  | 'narrafork_setting.allow_user_detail_template'
+  | 'narrafork_setting.allow_user_custom_quota_balance'
+  | 'narrafork_setting.allow_user_custom_detailed_quota_balance'
+
+function NarraForkUserPermissionSwitch({
+  name,
+  label,
+  description,
+  disabled,
+}: {
+  name: NarraForkUserPermissionName
+  label: string
+  description: string
+  disabled: boolean
+}) {
+  const { t } = useTranslation()
+  const form = useFormContext<NarraForkFormInput>()
+
+  return (
+    <FormField
+      control={form.control}
+      name={name}
+      render={({ field }) => (
+        <SettingsSwitchItem>
+          <SettingsSwitchContent>
+            <FormLabel>{t(label)}</FormLabel>
+            <FormDescription>{t(description)}</FormDescription>
+          </SettingsSwitchContent>
+          <FormControl>
+            <Switch
+              checked={Boolean(field.value)}
+              onCheckedChange={field.onChange}
+              disabled={disabled}
+            />
+          </FormControl>
+        </SettingsSwitchItem>
+      )}
+    />
+  )
+}
 
 function NarraForkDisplaySwitch({
   name,
@@ -396,8 +668,40 @@ export function NarraForkSettingsCard({ defaultValues }: Props) {
   }
 
   const enabled = form.watch('narrafork_setting.enabled')
+  const allowUserOverride = form.watch(
+    'narrafork_setting.allow_user_display_override'
+  )
   const balanceSource = form.watch('narrafork_setting.balance_source')
+  const includeDetailed = form.watch('narrafork_setting.include_detailed')
+  const exposeExtra = form.watch('narrafork_setting.expose_extra')
   const cacheHitRateScope = form.watch('narrafork_setting.cache_hit_rate_scope')
+  const showBalance = form.watch('narrafork_setting.show_balance')
+  const showRequestQuota = form.watch('narrafork_setting.show_request_quota')
+  const showTodayQuota = form.watch('narrafork_setting.show_today_quota')
+  const showTodayTokens = form.watch('narrafork_setting.show_today_tokens')
+  const showMonthQuota = form.watch('narrafork_setting.show_month_quota')
+  const showMonthTokens = form.watch('narrafork_setting.show_month_tokens')
+  const showTotalQuota = form.watch('narrafork_setting.show_total_quota')
+  const showUsedQuota = form.watch('narrafork_setting.show_used_quota')
+  const showInputTokens = form.watch('narrafork_setting.show_input_tokens')
+  const showOutputTokens = form.watch('narrafork_setting.show_output_tokens')
+  const showTotalTokens = form.watch('narrafork_setting.show_total_tokens')
+  const showCacheHitTokens = form.watch(
+    'narrafork_setting.show_cache_hit_tokens'
+  )
+  const showCacheHitRate = form.watch('narrafork_setting.show_cache_hit_rate')
+  const showReasoningTokens = form.watch(
+    'narrafork_setting.show_reasoning_tokens'
+  )
+  const showLatency = form.watch('narrafork_setting.show_latency')
+  const showTTFT = form.watch('narrafork_setting.show_ttft')
+  const showRequestID = form.watch('narrafork_setting.show_request_id')
+  const showRetryCount = form.watch('narrafork_setting.show_retry_count')
+  const showModel = form.watch('narrafork_setting.show_model')
+  const showBillingSource = form.watch('narrafork_setting.show_billing_source')
+  const showUnavailableFields = form.watch(
+    'narrafork_setting.show_unavailable_fields'
+  )
   const previewSettings = form.watch('narrafork_setting')
   const previewConfig = useMemo(
     () => buildPreviewPatch({ narrafork_setting: previewSettings }),
@@ -480,6 +784,335 @@ export function NarraForkSettingsCard({ defaultValues }: Props) {
               </SettingsSwitchItem>
             )}
           />
+
+          <SettingsControlGroup>
+            <SettingsSwitchContent>
+              <FormLabel>
+                {t('NarraFork user customization permissions')}
+              </FormLabel>
+              <FormDescription>
+                {t(
+                  'Choose which NarraFork options users may customize for their own requests. Global settings remain the upper limit.'
+                )}
+              </FormDescription>
+            </SettingsSwitchContent>
+            <div className='grid gap-x-5 lg:grid-cols-2'>
+              <NarraForkUserPermissionSwitch
+                name='narrafork_setting.allow_user_enabled'
+                label='Allow users to disable NarraFork events'
+                description='Allow users to hide or receive their own NarraFork events.'
+                disabled={!allowUserOverride || !enabled}
+              />
+              <NarraForkUserPermissionSwitch
+                name='narrafork_setting.allow_user_activation_mode'
+                label='Allow users to customize activation mode'
+                description='Allow users to choose how their requests activate NarraFork events.'
+                disabled={!allowUserOverride || !enabled}
+              />
+              <NarraForkUserPermissionSwitch
+                name='narrafork_setting.allow_user_balance_source'
+                label='Allow users to customize balance source'
+                description='Allow users to choose the balance source shown for their requests.'
+                disabled={!allowUserOverride || !enabled}
+              />
+              <NarraForkUserPermissionSwitch
+                name='narrafork_setting.allow_user_include_detailed'
+                label='Allow users to customize detailed output'
+                description='Allow users to choose whether detailed quota information is included.'
+                disabled={!allowUserOverride || !enabled || !includeDetailed}
+              />
+              <NarraForkUserPermissionSwitch
+                name='narrafork_setting.allow_user_duplicate_policy'
+                label='Allow users to customize duplicate policy'
+                description='Allow users to choose how duplicate quota events are handled.'
+                disabled={!allowUserOverride || !enabled}
+              />
+              <NarraForkUserPermissionSwitch
+                name='narrafork_setting.allow_user_expose_extra'
+                label='Allow users to customize extra fields'
+                description='Allow users to choose whether safe machine-readable fields are exposed.'
+                disabled={!allowUserOverride || !enabled || !exposeExtra}
+              />
+              <NarraForkUserPermissionSwitch
+                name='narrafork_setting.allow_user_token_display_mode'
+                label='Allow users to customize Token format'
+                description='Allow users to choose exact or compact Token formatting.'
+                disabled={!allowUserOverride || !enabled}
+              />
+              <NarraForkUserPermissionSwitch
+                name='narrafork_setting.allow_user_cache_hit_rate_scope'
+                label='Allow users to customize cache-hit window'
+                description='Allow users to choose their cache-hit rate aggregation window.'
+                disabled={!allowUserOverride || !enabled}
+              />
+              <NarraForkUserPermissionSwitch
+                name='narrafork_setting.allow_user_cache_hit_rate_days'
+                label='Allow users to customize cache-hit days'
+                description='Allow users to choose the recent-days window within the global limit.'
+                disabled={
+                  !allowUserOverride ||
+                  !enabled ||
+                  cacheHitRateScope !== 'recent_days'
+                }
+              />
+              <NarraForkUserPermissionSwitch
+                name='narrafork_setting.allow_user_show_balance'
+                label='Allow users to customize balance display'
+                description='Allow users to show or hide the balance line.'
+                disabled={
+                  !allowUserOverride ||
+                  !enabled ||
+                  !includeDetailed ||
+                  !showBalance
+                }
+              />
+              <NarraForkUserPermissionSwitch
+                name='narrafork_setting.allow_user_show_request_quota'
+                label='Allow users to customize request cost display'
+                description='Allow users to show or hide the request cost line.'
+                disabled={
+                  !allowUserOverride ||
+                  !enabled ||
+                  !includeDetailed ||
+                  !showRequestQuota
+                }
+              />
+              <NarraForkUserPermissionSwitch
+                name='narrafork_setting.allow_user_show_today_quota'
+                label='Allow users to customize today quota display'
+                description='Allow users to show or hide today quota consumption.'
+                disabled={
+                  !allowUserOverride ||
+                  !enabled ||
+                  !includeDetailed ||
+                  !showTodayQuota
+                }
+              />
+              <NarraForkUserPermissionSwitch
+                name='narrafork_setting.allow_user_show_today_tokens'
+                label='Allow users to customize today Token display'
+                description='Allow users to show or hide today Token totals.'
+                disabled={
+                  !allowUserOverride ||
+                  !enabled ||
+                  !includeDetailed ||
+                  !showTodayTokens
+                }
+              />
+              <NarraForkUserPermissionSwitch
+                name='narrafork_setting.allow_user_show_month_quota'
+                label='Allow users to customize monthly quota display'
+                description='Allow users to show or hide monthly quota consumption.'
+                disabled={
+                  !allowUserOverride ||
+                  !enabled ||
+                  !includeDetailed ||
+                  !showMonthQuota
+                }
+              />
+              <NarraForkUserPermissionSwitch
+                name='narrafork_setting.allow_user_show_month_tokens'
+                label='Allow users to customize monthly Token display'
+                description='Allow users to show or hide monthly Token totals.'
+                disabled={
+                  !allowUserOverride ||
+                  !enabled ||
+                  !includeDetailed ||
+                  !showMonthTokens
+                }
+              />
+              <NarraForkUserPermissionSwitch
+                name='narrafork_setting.allow_user_show_total_quota'
+                label='Allow users to customize total quota display'
+                description='Allow users to show or hide total quota.'
+                disabled={
+                  !allowUserOverride ||
+                  !enabled ||
+                  !includeDetailed ||
+                  !showTotalQuota
+                }
+              />
+              <NarraForkUserPermissionSwitch
+                name='narrafork_setting.allow_user_show_used_quota'
+                label='Allow users to customize accumulated usage display'
+                description='Allow users to show or hide accumulated quota usage.'
+                disabled={
+                  !allowUserOverride ||
+                  !enabled ||
+                  !includeDetailed ||
+                  !showUsedQuota
+                }
+              />
+              <NarraForkUserPermissionSwitch
+                name='narrafork_setting.allow_user_show_input_tokens'
+                label='Allow users to customize input Token display'
+                description='Allow users to show or hide input Token totals.'
+                disabled={
+                  !allowUserOverride ||
+                  !enabled ||
+                  !includeDetailed ||
+                  !showInputTokens
+                }
+              />
+              <NarraForkUserPermissionSwitch
+                name='narrafork_setting.allow_user_show_output_tokens'
+                label='Allow users to customize output Token display'
+                description='Allow users to show or hide output Token totals.'
+                disabled={
+                  !allowUserOverride ||
+                  !enabled ||
+                  !includeDetailed ||
+                  !showOutputTokens
+                }
+              />
+              <NarraForkUserPermissionSwitch
+                name='narrafork_setting.allow_user_show_total_tokens'
+                label='Allow users to customize total Token display'
+                description='Allow users to show or hide total Token totals.'
+                disabled={
+                  !allowUserOverride ||
+                  !enabled ||
+                  !includeDetailed ||
+                  !showTotalTokens
+                }
+              />
+              <NarraForkUserPermissionSwitch
+                name='narrafork_setting.allow_user_show_cache_hit_tokens'
+                label='Allow users to customize cache-hit Token display'
+                description='Allow users to show or hide cache-hit Token totals.'
+                disabled={
+                  !allowUserOverride ||
+                  !enabled ||
+                  !includeDetailed ||
+                  !showCacheHitTokens
+                }
+              />
+              <NarraForkUserPermissionSwitch
+                name='narrafork_setting.allow_user_show_cache_hit_rate'
+                label='Allow users to customize cache-hit rate display'
+                description='Allow users to show or hide the cache-hit percentage.'
+                disabled={
+                  !allowUserOverride ||
+                  !enabled ||
+                  !includeDetailed ||
+                  !showCacheHitRate
+                }
+              />
+              <NarraForkUserPermissionSwitch
+                name='narrafork_setting.allow_user_show_reasoning_tokens'
+                label='Allow users to customize reasoning Token display'
+                description='Allow users to show or hide reported reasoning Tokens.'
+                disabled={
+                  !allowUserOverride ||
+                  !enabled ||
+                  !includeDetailed ||
+                  !showReasoningTokens
+                }
+              />
+              <NarraForkUserPermissionSwitch
+                name='narrafork_setting.allow_user_show_latency'
+                label='Allow users to customize request duration display'
+                description='Allow users to show or hide request duration.'
+                disabled={
+                  !allowUserOverride ||
+                  !enabled ||
+                  !includeDetailed ||
+                  !showLatency
+                }
+              />
+              <NarraForkUserPermissionSwitch
+                name='narrafork_setting.allow_user_show_ttft'
+                label='Allow users to customize first Token latency display'
+                description='Allow users to show or hide time to first Token.'
+                disabled={
+                  !allowUserOverride ||
+                  !enabled ||
+                  !includeDetailed ||
+                  !showTTFT
+                }
+              />
+              <NarraForkUserPermissionSwitch
+                name='narrafork_setting.allow_user_show_request_id'
+                label='Allow users to customize request ID display'
+                description='Allow users to show or hide the request ID.'
+                disabled={
+                  !allowUserOverride ||
+                  !enabled ||
+                  !includeDetailed ||
+                  !showRequestID
+                }
+              />
+              <NarraForkUserPermissionSwitch
+                name='narrafork_setting.allow_user_show_retry_count'
+                label='Allow users to customize retry count display'
+                description='Allow users to show or hide retry counts.'
+                disabled={
+                  !allowUserOverride ||
+                  !enabled ||
+                  !includeDetailed ||
+                  !showRetryCount
+                }
+              />
+              <NarraForkUserPermissionSwitch
+                name='narrafork_setting.allow_user_show_model'
+                label='Allow users to customize model display'
+                description='Allow users to show or hide the upstream model name.'
+                disabled={
+                  !allowUserOverride ||
+                  !enabled ||
+                  !includeDetailed ||
+                  !showModel
+                }
+              />
+              <NarraForkUserPermissionSwitch
+                name='narrafork_setting.allow_user_show_billing_source'
+                label='Allow users to customize billing source display'
+                description='Allow users to show or hide the billing source.'
+                disabled={
+                  !allowUserOverride ||
+                  !enabled ||
+                  !includeDetailed ||
+                  !showBillingSource
+                }
+              />
+              <NarraForkUserPermissionSwitch
+                name='narrafork_setting.allow_user_show_unavailable_fields'
+                label='Allow users to customize unavailable fields'
+                description='Allow users to choose whether unavailable fields are shown as 未提供.'
+                disabled={
+                  !allowUserOverride ||
+                  !enabled ||
+                  !includeDetailed ||
+                  !showUnavailableFields
+                }
+              />
+              <NarraForkUserPermissionSwitch
+                name='narrafork_setting.allow_user_detail_template'
+                label='Allow users to customize detail template'
+                description='Allow users to customize their detailed quota template.'
+                disabled={!allowUserOverride || !enabled || !includeDetailed}
+              />
+              <NarraForkUserPermissionSwitch
+                name='narrafork_setting.allow_user_custom_quota_balance'
+                label='Allow users to customize quota balance text'
+                description='Allow users to customize the quota balance text when custom balance is enabled.'
+                disabled={
+                  !allowUserOverride || !enabled || balanceSource !== 'custom'
+                }
+              />
+              <NarraForkUserPermissionSwitch
+                name='narrafork_setting.allow_user_custom_detailed_quota_balance'
+                label='Allow users to customize detailed quota text'
+                description='Allow users to customize detailed quota text when custom balance is enabled.'
+                disabled={
+                  !allowUserOverride ||
+                  !enabled ||
+                  !includeDetailed ||
+                  balanceSource !== 'custom'
+                }
+              />
+            </div>
+          </SettingsControlGroup>
 
           <FormField
             control={form.control}
@@ -700,7 +1333,9 @@ export function NarraForkSettingsCard({ defaultValues }: Props) {
                   </SelectContent>
                 </Select>
                 <FormDescription>
-                  {t('Cache-hit rate is cached input Tokens divided by input Tokens.')}
+                  {t(
+                    'Cache-hit rate is cached input Tokens divided by input Tokens.'
+                  )}
                 </FormDescription>
                 <FormMessage />
               </FormItem>
@@ -712,7 +1347,9 @@ export function NarraForkSettingsCard({ defaultValues }: Props) {
             name='narrafork_setting.cache_hit_rate_days'
             render={({ field }) => (
               <FormItem className='max-w-md'>
-                <FormLabel>{t('NarraFork cache hit rate recent days')}</FormLabel>
+                <FormLabel>
+                  {t('NarraFork cache hit rate recent days')}
+                </FormLabel>
                 <FormControl>
                   <Input
                     type='number'
@@ -727,7 +1364,9 @@ export function NarraForkSettingsCard({ defaultValues }: Props) {
                   />
                 </FormControl>
                 <FormDescription>
-                  {t('Used when the cache-hit rate window is set to recent N days; allowed range is 1–30.')}
+                  {t(
+                    'Used when the cache-hit rate window is set to recent N days; allowed range is 1–30.'
+                  )}
                 </FormDescription>
                 <FormMessage />
               </FormItem>
@@ -884,11 +1523,15 @@ export function NarraForkSettingsCard({ defaultValues }: Props) {
                     {...field}
                     disabled={!enabled}
                     className='min-h-32 font-mono text-xs'
-                    placeholder={t('Example: Balance: {{balance}} / Latency: {{latency_ms}} ms')}
+                    placeholder={t(
+                      'Example: Balance: {{balance}} / Latency: {{latency_ms}} ms'
+                    )}
                   />
                 </FormControl>
                 <FormDescription>
-                  {t('Optional template for detailedQuotaBalance. Only allowlisted placeholders are supported.')}
+                  {t(
+                    'Optional template for detailedQuotaBalance. Only allowlisted placeholders are supported.'
+                  )}
                 </FormDescription>
                 <FormMessage />
               </FormItem>
@@ -936,7 +1579,9 @@ export function NarraForkSettingsCard({ defaultValues }: Props) {
             <SettingsSwitchContent>
               <FormLabel>{t('NarraFork scoped policies')}</FormLabel>
               <FormDescription>
-                {t('Override display fields for a user group or a specific user.')}
+                {t(
+                  'Override display fields for a user group or a specific user.'
+                )}
               </FormDescription>
             </SettingsSwitchContent>
             <NarraForkPolicyPanel disabled={!enabled} />
