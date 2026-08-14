@@ -284,6 +284,23 @@ func SetApiRouter(router *gin.Engine) {
 		logRoute.GET("/self", middleware.UserAuth(), controller.GetUserLogs)
 		logRoute.GET("/self/search", middleware.UserAuth(), middleware.SearchRateLimit(), controller.SearchUserLogs)
 
+		requestContentRoute := apiRouter.Group("/request-records")
+		requestContentRoute.Use(
+			middleware.UserAuth(),
+			middleware.CORS(),
+			middleware.CriticalRateLimit(),
+			controller.RequestContentAuditNoStore,
+		)
+		{
+			requestContentRoute.GET("/", controller.ListRequestContentAudits)
+			requestContentRoute.GET("/by-request-id/:request_id", controller.GetRequestContentAuditByRequestID)
+			requestContentRoute.GET("/by-request-id/:request_id/preview", controller.GetRequestContentAuditPreviewByRequestID)
+			requestContentRoute.GET("/:id", controller.GetRequestContentAudit)
+			requestContentRoute.GET("/:id/preview", controller.GetRequestContentAuditPreview)
+			requestContentRoute.GET("/:id/content", controller.StreamRequestContentAuditContent)
+			requestContentRoute.GET("/:id/assets/:asset_key/:variant", controller.StreamRequestContentAuditAsset)
+		}
+
 		systemTaskRoute := apiRouter.Group("/system-task")
 		systemTaskRoute.Use(middleware.RootAuth())
 		{

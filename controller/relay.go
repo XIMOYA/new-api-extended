@@ -126,6 +126,13 @@ func Relay(c *gin.Context, relayFormat types.RelayFormat) {
 		return
 	}
 
+	if captureErr := service.CaptureRelayRequestContent(c, relayFormat, relayInfo); captureErr != nil {
+		logger.LogWarn(c, fmt.Sprintf("request content audit capture failed: %v", captureErr))
+		if failureErr := service.RecordRequestContentAuditFailure(c, relayFormat, relayInfo, captureErr); failureErr != nil {
+			logger.LogError(c, fmt.Sprintf("request content audit failure record failed: %v", failureErr))
+		}
+	}
+
 	needSensitiveCheck := setting.ShouldCheckPromptSensitive()
 	needCountToken := constant.CountToken
 	// Avoid building huge CombineText (strings.Join) when token counting and sensitive check are both disabled.

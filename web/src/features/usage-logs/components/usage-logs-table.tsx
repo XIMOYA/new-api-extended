@@ -18,7 +18,8 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { useQuery } from '@tanstack/react-query'
 import { getRouteApi } from '@tanstack/react-router'
-import { type ColumnDef } from '@tanstack/react-table'
+import type { ColumnDef } from '@tanstack/react-table'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
@@ -77,6 +78,20 @@ export function UsageLogsTable({ logCategory }: UsageLogsTableProps) {
   const { isAdminView: isAdmin } = useLogsViewScope()
   const isMobile = useMediaQuery('(max-width: 640px)')
   const searchParams = route.useSearch()
+  const [highlightRequestId, setHighlightRequestId] = useState<string | null>(null)
+
+  useEffect(() => {
+    const requestId = searchParams.requestId
+      ? String(searchParams.requestId)
+      : ''
+    if (!requestId) {
+      setHighlightRequestId(null)
+      return
+    }
+    setHighlightRequestId(requestId)
+    const timeout = window.setTimeout(() => setHighlightRequestId(null), 5000)
+    return () => window.clearTimeout(timeout)
+  }, [searchParams.requestId])
 
   const {
     columnFilters,
@@ -209,6 +224,9 @@ export function UsageLogsTable({ logCategory }: UsageLogsTableProps) {
         const logType = (row.original as Record<string, unknown>).type as
           | number
           | undefined
+        const requestId = String(
+          (row.original as Record<string, unknown>).request_id ?? ''
+        )
         let tintClass =
           isCommon && logType != null ? (logTypeRowTint[logType] ?? '') : ''
         if (isCommon && isAdmin) {
@@ -224,7 +242,13 @@ export function UsageLogsTable({ logCategory }: UsageLogsTableProps) {
           <DataTableRow
             key={row.id}
             row={row}
-            className={cn('transition-colors', tintClass)}
+            className={cn(
+              'transition-colors',
+              tintClass,
+              highlightRequestId && requestId === highlightRequestId
+                ? 'bg-primary/10 ring-primary/60 animate-pulse ring-2 ring-inset'
+                : ''
+            )}
             getColumnClassName={() => (isCommon ? 'py-2' : 'py-3.5')}
           />
         )

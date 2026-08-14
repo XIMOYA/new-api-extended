@@ -12,6 +12,7 @@ import (
 	"github.com/QuantumNous/new-api/setting/operation_setting"
 	"github.com/QuantumNous/new-api/setting/performance_setting"
 	"github.com/QuantumNous/new-api/setting/ratio_setting"
+	"github.com/QuantumNous/new-api/setting/request_content_setting"
 	"github.com/QuantumNous/new-api/setting/system_setting"
 	"gorm.io/gorm"
 )
@@ -209,6 +210,9 @@ func SyncOptions(frequency int) {
 func validateOptionValue(key string, value string) error {
 	if narrafork_setting.IsOptionKey(key) {
 		return narrafork_setting.ValidateOption(key, value)
+	}
+	if request_content_setting.IsOptionKey(key) {
+		return request_content_setting.ValidateOption(key, value)
 	}
 	if key == operation_setting.ToolPriceOptionKey {
 		return operation_setting.ValidateToolPricesJSON(value)

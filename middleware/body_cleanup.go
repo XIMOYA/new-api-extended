@@ -15,6 +15,10 @@ func BodyStorageCleanup() gin.HandlerFunc {
 
 		// 请求结束后清理存储
 		common.CleanupBodyStorage(c)
+		if c.Request != nil && c.Request.MultipartForm != nil {
+			_ = c.Request.MultipartForm.RemoveAll()
+			c.Request.MultipartForm = nil
+		}
 
 		// 清理文件缓存（URL 下载的文件等）
 		service.CleanupFileSources(c)

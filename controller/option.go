@@ -9,11 +9,13 @@ import (
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/i18n"
 	"github.com/QuantumNous/new-api/model"
+	"github.com/QuantumNous/new-api/service"
 	"github.com/QuantumNous/new-api/setting"
 	"github.com/QuantumNous/new-api/setting/console_setting"
 	"github.com/QuantumNous/new-api/setting/model_setting"
 	"github.com/QuantumNous/new-api/setting/operation_setting"
 	"github.com/QuantumNous/new-api/setting/ratio_setting"
+	"github.com/QuantumNous/new-api/setting/request_content_setting"
 	"github.com/QuantumNous/new-api/setting/system_setting"
 
 	"github.com/gin-gonic/gin"
@@ -41,6 +43,25 @@ func isPositiveOptionValue(value string) bool {
 	}
 	floatValue, err := strconv.ParseFloat(strings.TrimSpace(value), 64)
 	return err == nil && floatValue > 0
+}
+
+func validateRequestContentAuditStoragePathChange(value string) error {
+	current := request_content_setting.NormalizeStoragePath(request_content_setting.GetSettings().StoragePath)
+	next := request_content_setting.NormalizeStoragePath(value)
+	if current == next {
+		return nil
+	}
+	if model.DB == nil {
+		return fmt.Errorf("request content audit storage path cannot be changed before database initialization")
+	}
+	var count int64
+	if err := model.DB.Model(&model.RequestContentAudit{}).Count(&count).Error; err != nil {
+		return fmt.Errorf("check existing request content audit records: %w", err)
+	}
+	if count > 0 {
+		return fmt.Errorf("request content audit storage path cannot change while %d records exist", count)
+	}
+	return nil
 }
 
 func collectModelNamesFromOptionValue(raw string, modelNames map[string]struct{}) {
@@ -82,6 +103,9 @@ func GetOptions(c *gin.Context) {
 	common.OptionMapRWMutex.Lock()
 	for k, v := range common.OptionMap {
 		if k == "theme.frontend" {
+			continue
+		}
+		if request_content_setting.IsOptionKey(k) && c.GetInt("role") != common.RoleRootUser {
 			continue
 		}
 		value := common.Interface2String(v)
@@ -140,6 +164,17 @@ func UpdateOption(c *gin.Context) {
 		option.Value = common.Interface2String(option.Value.(int))
 	default:
 		option.Value = fmt.Sprintf("%v", option.Value)
+	}
+	if request_content_setting.IsOptionKey(option.Key) && c.GetInt("role") != common.RoleRootUser {
+		c.JSON(http.StatusForbidden, gin.H{
+			"success": false,
+			"message": "只有 Root 用户可以修改请求内容审计设置",
+		})
+		return
+	}
+	if option.Key == request_content_setting.OptionPrefix+"enabled" && option.Value.(string) == "true" && !service.RequestContentAuditEncryptionReady() {
+		common.ApiErrorMsg(c, "启用请求内容审计前，请配置稳定的 CRYPTO_SECRET 或 SESSION_SECRET")
+		return
 	}
 	switch option.Key {
 	case "QuotaForInviter", "QuotaForInvitee":
@@ -360,6 +395,12 @@ func UpdateOption(c *gin.Context) {
 				"success": false,
 				"message": err.Error(),
 			})
+			return
+		}
+	}
+	if option.Key == request_content_setting.OptionPrefix+"storage_path" {
+		if err := validateRequestContentAuditStoragePathChange(option.Value.(string)); err != nil {
+			common.ApiError(c, err)
 			return
 		}
 	}

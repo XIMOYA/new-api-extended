@@ -25,6 +25,7 @@ import { GeminiSettingsCard } from './gemini-settings-card'
 import { GlobalSettingsCard } from './global-settings-card'
 import { GrokSettingsCard } from './grok-settings-card'
 import { NarraForkSettingsCard } from './narrafork-settings-card'
+import { RequestContentAuditSection } from './request-content-audit-section'
 import { RoutingReliabilitySection } from './routing-reliability-section'
 
 function formatJsonForEditor(value: string, fallback: string) {
@@ -62,6 +63,24 @@ const MODELS_SECTIONS = [
             ping_interval_seconds:
               settings['general_setting.ping_interval_seconds'],
           },
+        }}
+      />
+    ),
+  },
+  {
+    id: 'request-content-audit',
+    titleKey: 'Request Content Audit',
+    build: (settings: ModelSettings) => (
+      <RequestContentAuditSection
+        defaultValues={{
+          enabled: settings['request_content_audit.enabled'],
+          allow_user_view: settings['request_content_audit.allow_user_view'],
+          admin_allowlist: settings['request_content_audit.admin_allowlist'],
+          retention_days: settings['request_content_audit.retention_days'],
+          storage_path: settings['request_content_audit.storage_path'],
+          max_record_bytes: settings['request_content_audit.max_record_bytes'],
+          max_asset_bytes: settings['request_content_audit.max_asset_bytes'],
+          chunk_size_bytes: settings['request_content_audit.chunk_size_bytes'],
         }}
       />
     ),

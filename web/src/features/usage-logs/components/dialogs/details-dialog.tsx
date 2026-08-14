@@ -17,6 +17,8 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import type { TFunction } from 'i18next'
+import { useNavigate } from '@tanstack/react-router'
+import { useEffect, useState } from 'react'
 /*
 Copyright (C) 2023-2026 QuantumNous
 
@@ -58,6 +60,7 @@ import { Button } from '@/components/ui/button'
 import { IconBadge, type IconBadgeTone } from '@/components/ui/icon-badge'
 import { Label } from '@/components/ui/label'
 import { DynamicPricingBreakdown } from '@/features/pricing/components/dynamic-pricing-breakdown'
+import { getRequestContentPreviewByRequestId } from '@/features/request-records/api'
 import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard'
 import { formatBillingCurrencyFromUSD } from '@/lib/currency'
 import { formatLogQuota, formatTokens, formatUseTime } from '@/lib/format'
@@ -465,6 +468,58 @@ function TokenBreakdown(props: { log: UsageLog; other: LogOtherData }) {
       {rows.map((row) => (
         <DetailRow key={row.label} label={row.label} value={row.value} mono />
       ))}
+    </DetailSection>
+  )
+}
+
+function RequestContentSection(props: { requestId: string; isAdmin: boolean }) {
+  const { t } = useTranslation()
+  const navigate = useNavigate()
+  const [preview, setPreview] = useState('')
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    let active = true
+    setLoading(true)
+    void getRequestContentPreviewByRequestId(props.requestId)
+      .then((result) => {
+        if (active) setPreview(result.content || '')
+      })
+      .catch(() => {
+        if (active) setPreview('')
+      })
+      .finally(() => {
+        if (active) setLoading(false)
+      })
+    return () => {
+      active = false
+    }
+  }, [props.requestId])
+
+  return (
+    <DetailSection label={t(props.isAdmin ? 'Request Content' : 'My Request Content')}>
+      <div className='space-y-2'>
+        <p
+          className='text-muted-foreground line-clamp-4 max-h-20 overflow-hidden text-xs leading-relaxed break-all whitespace-pre-wrap'
+          title={preview}
+        >
+          {loading
+            ? t('Loading...')
+            : preview || t('Request content is unavailable')}
+        </p>
+        <Button
+          variant='outline'
+          size='sm'
+          onClick={() =>
+            void navigate({
+              to: '/request-records',
+              search: { requestId: props.requestId, page: 1 },
+            })
+          }
+        >
+          {t('Go to Request Records')}
+        </Button>
+      </div>
     </DetailSection>
   )
 }
@@ -1224,6 +1279,13 @@ export function DetailsDialog(props: DetailsDialogProps) {
               )
             })}
           </DetailSection>
+        )}
+
+        {props.log.request_id && (
+          <RequestContentSection
+            requestId={props.log.request_id}
+            isAdmin={props.isAdmin}
+          />
         )}
 
         {/* Content */}

@@ -242,6 +242,14 @@ export type ContentSettings = {
 }
 
 export type ModelSettings = {
+  'request_content_audit.enabled': boolean
+  'request_content_audit.allow_user_view': boolean
+  'request_content_audit.admin_allowlist': number[]
+  'request_content_audit.retention_days': number
+  'request_content_audit.storage_path': string
+  'request_content_audit.max_record_bytes': number
+  'request_content_audit.max_asset_bytes': number
+  'request_content_audit.chunk_size_bytes': number
   'narrafork_setting.enabled': boolean
   'narrafork_setting.allow_user_display_override': boolean
   'narrafork_setting.allow_user_enabled': boolean
