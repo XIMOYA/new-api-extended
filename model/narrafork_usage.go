@@ -145,8 +145,10 @@ func GetNarraForkDashboardCacheHitRateSummary(userID int, username string, start
 		summary.CacheWriteTokens += narraForkDashboardCacheWriteTokens(other)
 	}
 
-	summary.CacheInputTokens = summary.InputTokens + summary.CacheHitTokens + summary.CacheWriteTokens
-	summary.TotalTokens = summary.CacheInputTokens + summary.OutputTokens
+	// prompt_tokens is the input-token denominator used by the existing dashboard.
+	// Cache hit/write fields are breakdown data and must not be added again.
+	summary.CacheInputTokens = summary.InputTokens
+	summary.TotalTokens = summary.InputTokens + summary.OutputTokens
 	summary.Available = summary.Complete && summary.CacheInputTokens > 0
 	if summary.Available {
 		summary.CacheHitRate = float64(summary.CacheHitTokens) / float64(summary.CacheInputTokens) * 100

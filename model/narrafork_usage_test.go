@@ -143,9 +143,9 @@ func TestGetNarraForkDashboardCacheHitRateSummary(t *testing.T) {
 	require.Equal(t, int64(15), userSummary.OutputTokens)
 	require.Equal(t, int64(330), userSummary.CacheHitTokens)
 	require.Equal(t, int64(30), userSummary.CacheWriteTokens)
-	require.Equal(t, int64(510), userSummary.CacheInputTokens)
-	require.Equal(t, int64(525), userSummary.TotalTokens)
-	require.InDelta(t, 64.705882, userSummary.CacheHitRate, 0.0001)
+	require.Equal(t, int64(150), userSummary.CacheInputTokens)
+	require.Equal(t, int64(165), userSummary.TotalTokens)
+	require.InDelta(t, 100.0, userSummary.CacheHitRate, 0.0001)
 
 	nameSummary, err := GetNarraForkDashboardCacheHitRateSummary(0, "bob", now.Add(-24*time.Hour).Unix(), now.Unix())
 	require.NoError(t, err)
