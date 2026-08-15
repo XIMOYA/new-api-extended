@@ -164,6 +164,46 @@ func GetRequestContentAudit(c *gin.Context) {
 	common.ApiSuccess(c, detail)
 }
 
+func GetRequestContentAuditView(c *gin.Context) {
+	store, audit, access, ok := loadAuthorizedRequestContentAudit(c, c.Param("id"))
+	if !ok {
+		return
+	}
+	view, err := service.BuildRequestContentAuditView(c.Request.Context(), store, audit, access.Redacted)
+	if err != nil {
+		writeRequestContentAuditError(c, http.StatusInternalServerError, err)
+		return
+	}
+	common.ApiSuccess(c, view)
+}
+
+func GetRequestContentAuditViewSection(c *gin.Context) {
+	store, audit, access, ok := loadAuthorizedRequestContentAudit(c, c.Param("id"))
+	if !ok {
+		return
+	}
+	section, err := service.GetRequestContentAuditViewSection(
+		c.Request.Context(),
+		store,
+		audit,
+		c.Param("section_id"),
+		access.Redacted,
+	)
+	if err != nil {
+		if errors.Is(err, service.ErrRequestContentAuditViewSectionMissing) {
+			writeRequestContentAuditError(c, http.StatusNotFound, err)
+			return
+		}
+		if errors.Is(err, service.ErrRequestContentAuditViewSourceTooLarge) {
+			writeRequestContentAuditError(c, http.StatusRequestEntityTooLarge, err)
+			return
+		}
+		writeRequestContentAuditError(c, http.StatusInternalServerError, err)
+		return
+	}
+	common.ApiSuccess(c, section)
+}
+
 func GetRequestContentAuditByRequestID(c *gin.Context) {
 	store, err := service.EnsureRequestContentAuditStore(c.Request.Context())
 	if err != nil {
@@ -527,7 +567,10 @@ func writeRequestContentAuditLookupError(c *gin.Context, err error) {
 
 func writeRequestContentAuditError(c *gin.Context, status int, err error) {
 	message := "request content audit request failed"
-	if err != nil && status < http.StatusInternalServerError {
+	if errors.Is(err, auditstore.ErrEncryptionKeyUnavailable) {
+		status = http.StatusServiceUnavailable
+		message = "request content audit encryption key is unavailable"
+	} else if err != nil && status < http.StatusInternalServerError {
 		message = err.Error()
 	}
 	c.JSON(status, gin.H{

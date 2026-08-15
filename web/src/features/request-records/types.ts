@@ -43,6 +43,52 @@ export type RequestContentAuditDetail = RequestContentAuditSummary & {
   assets: RequestContentAuditAsset[]
 }
 
+export type RequestContentAuditViewSummary = {
+  input_item_count: number
+  message_count: number
+  sections_truncated: boolean
+  tool_call_count: number
+  tool_output_count: number
+  reasoning_count: number
+  advanced_field_count: number
+  opaque_bytes: number
+  asset_count: number
+}
+
+export type RequestContentAuditViewSection = {
+  id: string
+  kind: string
+  type?: string
+  role?: string
+  call_id?: string
+  output_type?: string
+  title: string
+  preview?: string
+  content?: string
+  content_format?: 'text' | 'json'
+  content_size: number
+  opaque_bytes?: number
+  opaque_hash?: string
+  opaque: boolean
+  expandable: boolean
+  truncated: boolean
+  asset_keys?: string[]
+}
+
+export type RequestContentAuditView = {
+  request_id: string
+  schema_version?: number
+  relay_format: string
+  endpoint_path?: string
+  kind: string
+  source_size: number
+  stored_size: number
+  projection_available: boolean
+  projection_message?: string
+  summary: RequestContentAuditViewSummary
+  sections: RequestContentAuditViewSection[]
+}
+
 export type RequestContentAuditPage = {
   page: number
   page_size: number

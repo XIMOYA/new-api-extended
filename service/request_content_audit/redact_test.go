@@ -8,6 +8,19 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestRedactValueLimitedStopsDeepAndWidePayloads(t *testing.T) {
+	value := map[string]any{
+		"authorization": "Bearer very-secret-token",
+		"nested":        map[string]any{"password": "plain-password"},
+		"items":         []any{"one", "two", "three"},
+	}
+
+	redacted, ok := RedactValueLimited(value, 1, 20).(map[string]any)
+	require.True(t, ok)
+	require.Equal(t, "[REDACTED]", redacted["authorization"])
+	require.Equal(t, "[REDACTED_NESTED]", redacted["nested"].(map[string]any)["password"])
+}
+
 func TestRedactValueMasksSensitiveFieldsAndInlineSecrets(t *testing.T) {
 	value := map[string]any{
 		"authorization": "Bearer very-secret-token",

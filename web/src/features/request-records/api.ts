@@ -8,6 +8,8 @@ import type {
   RequestContentAuditListParams,
   RequestContentAuditPage,
   RequestContentAuditPreview,
+  RequestContentAuditView,
+  RequestContentAuditViewSection,
 } from './types'
 
 const requestRecordsPath = '/api/request-records'
@@ -26,9 +28,13 @@ export async function getRequestContentAudits(
   params: RequestContentAuditListParams = {}
 ): Promise<RequestContentAuditPage> {
   const { page = 1, ...rest } = params
-  const queryParams = new URLSearchParams(buildQuery({ page_size: 20, ...rest }))
+  const queryParams = new URLSearchParams(
+    buildQuery({ page_size: 20, ...rest })
+  )
   queryParams.set('p', String(page))
-  const response = await api.get(`${requestRecordsPath}/?${queryParams.toString()}`)
+  const response = await api.get(
+    `${requestRecordsPath}/?${queryParams.toString()}`
+  )
   return response.data.data as RequestContentAuditPage
 }
 
@@ -46,6 +52,23 @@ export async function getRequestContentAuditByRequestId(
     `${requestRecordsPath}/by-request-id/${encodeURIComponent(requestId)}`
   )
   return response.data.data as RequestContentAuditDetail
+}
+
+export async function getRequestContentView(
+  id: number
+): Promise<RequestContentAuditView> {
+  const response = await api.get(`${requestRecordsPath}/${id}/view`)
+  return response.data.data as RequestContentAuditView
+}
+
+export async function getRequestContentViewSection(
+  id: number,
+  sectionId: string
+): Promise<RequestContentAuditViewSection> {
+  const response = await api.get(
+    `${requestRecordsPath}/${id}/view/sections/${encodeURIComponent(sectionId)}`
+  )
+  return response.data.data as RequestContentAuditViewSection
 }
 
 export async function getRequestContentPreview(

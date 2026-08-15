@@ -19,6 +19,57 @@ func RedactValue(value any) any {
 	return redactValue(value, false)
 }
 
+// RedactValueLimited applies the same redaction rules with bounded recursion for derived views.
+func RedactValueLimited(value any, maxDepth, maxNodes int) any {
+	if maxDepth < 1 {
+		maxDepth = 1
+	}
+	if maxNodes < 1 {
+		maxNodes = 1
+	}
+	budget := &redactBudget{remaining: maxNodes}
+	return redactValueLimited(value, false, 0, maxDepth, budget)
+}
+
+type redactBudget struct {
+	remaining int
+}
+
+func (budget *redactBudget) take() bool {
+	if budget.remaining <= 0 {
+		return false
+	}
+	budget.remaining--
+	return true
+}
+
+func redactValueLimited(value any, sensitiveKey bool, depth, maxDepth int, budget *redactBudget) any {
+	if depth > maxDepth || !budget.take() {
+		return "[REDACTED_NESTED]"
+	}
+	switch typed := value.(type) {
+	case map[string]any:
+		result := make(map[string]any, len(typed))
+		for key, child := range typed {
+			result[key] = redactValueLimited(child, isSensitiveKey(key), depth+1, maxDepth, budget)
+		}
+		return result
+	case []any:
+		result := make([]any, 0, len(typed))
+		for _, child := range typed {
+			result = append(result, redactValueLimited(child, sensitiveKey, depth+1, maxDepth, budget))
+		}
+		return result
+	case string:
+		if sensitiveKey {
+			return "[REDACTED]"
+		}
+		return RedactText(typed)
+	default:
+		return value
+	}
+}
+
 func RedactText(value string) string {
 	value = bearerSecretPattern.ReplaceAllString(value, "Bearer [REDACTED]")
 	value = apiKeyPattern.ReplaceAllString(value, "[REDACTED_KEY]")
