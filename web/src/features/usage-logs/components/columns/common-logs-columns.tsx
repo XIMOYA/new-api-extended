@@ -94,6 +94,19 @@ function getGroupRatio(other: LogOtherData | null): number | null {
   return null
 }
 
+function getReasoningEffortVariant(value: string): StatusBadgeProps['variant'] {
+  switch (value.toLowerCase()) {
+    case 'high':
+      return 'orange'
+    case 'medium':
+      return 'yellow'
+    case 'low':
+      return 'green'
+    default:
+      return 'neutral'
+  }
+}
+
 function buildDetailSegments(
   log: UsageLog,
   other: LogOtherData | null,
@@ -617,6 +630,33 @@ export function useCommonLogsColumns(isAdmin: boolean): ColumnDef<UsageLog>[] {
         )
       },
       meta: { mobileTitle: true },
+    },
+    {
+      id: 'reasoning_effort',
+      header: t('Reasoning'),
+      accessorFn: (row) => parseLogOther(row.other)?.reasoning_effort ?? '',
+      cell: ({ row }) => {
+        const value = String(row.getValue('reasoning_effort') ?? '').trim()
+        if (!value) {
+          return <span className='text-muted-foreground text-xs'>-</span>
+        }
+
+        return (
+          <StatusBadge
+            label={value}
+            variant={getReasoningEffortVariant(value)}
+            size='sm'
+            showDot={false}
+            copyable={false}
+            title={t('Reasoning Effort')}
+            className='h-6 min-w-[54px] justify-center px-2 text-xs'
+          />
+        )
+      },
+      meta: { label: t('Reasoning Effort') },
+      size: 88,
+      minSize: 80,
+      maxSize: 104,
     },
     {
       accessorKey: 'is_stream',
