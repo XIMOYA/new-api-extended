@@ -4,6 +4,7 @@ package controller
 
 import (
 	"net/http"
+	"sort"
 	"strings"
 
 	"github.com/QuantumNous/new-api/common"
@@ -29,6 +30,58 @@ type narraForkPolicyUpdateRequest struct {
 
 type narraForkPreviewRequest struct {
 	Config narrafork_setting.NarraForkPolicyPatch `json:"config"`
+}
+
+type narraForkSettingsBulkUpdateRequest struct {
+	Values map[string]string `json:"values"`
+}
+
+func UpdateNarraForkSettings(c *gin.Context) {
+	var request narraForkSettingsBulkUpdateRequest
+	if err := common.DecodeJson(c.Request.Body, &request); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "无效的 NarraFork 设置参数"})
+		return
+	}
+
+	values := make(map[string]string, len(request.Values))
+	for rawKey, value := range request.Values {
+		key := strings.TrimSpace(rawKey)
+		if !narrafork_setting.IsOptionKey(key) {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"success": false,
+				"message": "批量设置只允许修改 NarraFork 配置项",
+			})
+			return
+		}
+		values[key] = value
+	}
+	if len(values) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"message": "至少需要提供一项 NarraFork 配置",
+		})
+		return
+	}
+
+	if err := model.UpdateOptionsBulk(values); err != nil {
+		common.ApiError(c, err)
+		return
+	}
+
+	keys := make([]string, 0, len(values))
+	for key := range values {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	recordManageAudit(c, "option.bulk_update", map[string]interface{}{
+		"keys":  keys,
+		"count": len(keys),
+	})
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "",
+		"data":    gin.H{"updated": len(keys)},
+	})
 }
 
 func GetNarraForkPolicies(c *gin.Context) {

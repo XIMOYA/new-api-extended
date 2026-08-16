@@ -195,6 +195,7 @@ func SetApiRouter(router *gin.Engine) {
 			optionRoute.GET("/", controller.GetOptions)
 			optionRoute.PUT("/", controller.UpdateOption)
 			optionRoute.POST("/payment_compliance", controller.ConfirmPaymentCompliance)
+			optionRoute.PUT("/narrafork/bulk", controller.UpdateNarraForkSettings)
 			optionRoute.GET("/narrafork/policies", controller.GetNarraForkPolicies)
 			optionRoute.PUT("/narrafork/policies", controller.UpdateNarraForkPolicy)
 			optionRoute.DELETE("/narrafork/policies/:scope_type/:scope_key", controller.DeleteNarraForkPolicy)

@@ -41,7 +41,7 @@ import {
 } from '../components/settings-form-layout'
 import { SettingsPageFormActions } from '../components/settings-page-context'
 import { SettingsSection } from '../components/settings-section'
-import { useUpdateOption } from '../hooks/use-update-option'
+import { useUpdateNarraForkSettings } from '../hooks/use-update-option'
 import type { NarraForkPolicyPatch } from '../types'
 import { NarraForkPolicyPanel } from './narrafork-policy-panel'
 import { NarraForkPreviewPanel } from './narrafork-preview-panel'
@@ -629,7 +629,7 @@ function buildPreviewPatch(values: NarraForkFormValues): NarraForkPolicyPatch {
 
 export function NarraForkSettingsCard({ defaultValues }: Props) {
   const { t } = useTranslation()
-  const updateOption = useUpdateOption()
+  const updateNarraForkSettingsMutation = useUpdateNarraForkSettings()
   const formDefaults = useMemo(
     () => buildFormDefaults(defaultValues),
     [defaultValues]
@@ -659,8 +659,15 @@ export function NarraForkSettingsCard({ defaultValues }: Props) {
       toast.info(t('No changes to save'))
       return
     }
-    for (const key of changedKeys) {
-      await updateOption.mutateAsync({ key, value: normalized[key] })
+    const changedValues = Object.fromEntries(
+      changedKeys.map((key) => [key, String(normalized[key])])
+    )
+    try {
+      const response =
+        await updateNarraForkSettingsMutation.mutateAsync(changedValues)
+      if (!response.success) return
+    } catch {
+      return
     }
     baselineRef.current = normalized
     baselineSerializedRef.current = JSON.stringify(normalized)
@@ -734,7 +741,7 @@ export function NarraForkSettingsCard({ defaultValues }: Props) {
         <SettingsForm onSubmit={form.handleSubmit(onSubmit)}>
           <SettingsPageFormActions
             onSave={form.handleSubmit(onSubmit)}
-            isSaving={updateOption.isPending}
+            isSaving={updateNarraForkSettingsMutation.isPending}
           />
 
           <FormField

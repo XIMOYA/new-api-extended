@@ -44,6 +44,16 @@ export async function updateSystemOption(request: UpdateOptionRequest) {
   return res.data
 }
 
+export async function updateNarraForkSettings(values: Record<string, string>) {
+  const res = await api.put<UpdateOptionResponse>(
+    '/api/option/narrafork/bulk',
+    {
+      values,
+    }
+  )
+  return res.data
+}
+
 export async function confirmPaymentCompliance() {
   const res = await api.post<ConfirmPaymentComplianceResponse>(
     '/api/option/payment_compliance',
@@ -153,8 +163,12 @@ export async function previewNarraForkEvent(config: NarraForkPolicyPatch) {
 }
 
 export async function sendNarraForkTestEvent(config: NarraForkPolicyPatch) {
-  const res = await api.post<string>('/api/option/narrafork/test', { config }, {
-    responseType: 'text',
-  })
+  const res = await api.post<string>(
+    '/api/option/narrafork/test',
+    { config },
+    {
+      responseType: 'text',
+    }
+  )
   return res.data
 }
