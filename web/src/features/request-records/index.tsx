@@ -1,5 +1,5 @@
 // web/src/features/request-records/index.tsx
-// 请求记录独立页面：分页展示元数据，点击后流式读取正文并懒加载多模态缩略图。
+// 请求记录独立页面：分页展示元数据，每行带本轮最新用户消息摘要，点击后流式读取正文并懒加载多模态缩略图。
 
 import { useQuery } from '@tanstack/react-query'
 import { getRouteApi, useNavigate } from '@tanstack/react-router'
@@ -35,6 +35,7 @@ import { cn } from '@/lib/utils'
 import {
   getRequestContentAuditByRequestId,
   getRequestContentAudits,
+  getRequestContentHighlight,
   getRequestContentView,
   streamRequestContent,
 } from './api'
@@ -191,12 +192,15 @@ export function RequestRecords() {
           </Card>
 
           <div className='min-h-0 flex-1 overflow-auto rounded-lg border'>
-            <table className='w-full min-w-[900px] text-[13px]'>
+            <table className='w-full min-w-[1100px] text-[13px]'>
               <thead className='bg-muted/50 sticky top-0 z-10 border-b'>
                 <tr className='text-muted-foreground text-left text-xs'>
                   <th className='px-3 py-2 font-medium'>{t('Time')}</th>
                   <th className='px-3 py-2 font-medium'>{t('User')}</th>
                   <th className='px-3 py-2 font-medium'>{t('Model')}</th>
+                  <th className='px-3 py-2 font-medium'>
+                    {t('Latest User Message')}
+                  </th>
                   <th className='px-3 py-2 font-medium'>{t('Request Type')}</th>
                   <th className='px-3 py-2 font-medium'>{t('Size')}</th>
                   <th className='px-3 py-2 font-medium'>{t('Status')}</th>
@@ -284,7 +288,7 @@ function RequestRecordsTableBody(props: {
     return (
       <tr>
         <td
-          colSpan={7}
+          colSpan={8}
           className='text-muted-foreground px-3 py-12 text-center'
         >
           {t('Loading...')}
@@ -296,7 +300,7 @@ function RequestRecordsTableBody(props: {
     return (
       <tr>
         <td
-          colSpan={7}
+          colSpan={8}
           className='text-muted-foreground px-3 py-12 text-center'
         >
           {t('No request records')}
@@ -304,121 +308,164 @@ function RequestRecordsTableBody(props: {
       </tr>
     )
   }
-  return props.items.map((item) => {
-    let statusLabel = t('Available')
-    let statusVariant: 'success' | 'warning' | 'danger' = 'success'
-    if (item.capture_status !== 'complete' || !item.content_available) {
-      statusLabel = t('Unavailable')
-      statusVariant = 'danger'
-    } else if (item.is_redacted) {
-      statusLabel = t('Redacted')
-      statusVariant = 'warning'
-    }
-    const displayUsername = item.username || `#${item.user_id}`
-    const requestType = item.request_type || item.relay_format || '-'
-    return (
-      <tr
-        key={item.id}
-        className={cn(
-          'hover:bg-muted/30 cursor-pointer border-b last:border-0',
-          props.highlightRequestId === item.request_id &&
-            'bg-primary/5 animate-pulse ring-2 ring-inset ring-primary/40'
-        )}
-        onClick={() => props.onSelect(item)}
-      >
-        <td className='px-3 py-2.5 whitespace-nowrap'>
-          <span className='font-mono text-xs tabular-nums'>
-            {formatTimestampToDate(item.created_at)}
-          </span>
-        </td>
-        <td className='px-3 py-2.5'>
-          <div className='flex min-w-0 items-center gap-1.5'>
-            <Avatar className='ring-border/60 size-6 shrink-0 ring-1'>
-              <AvatarFallback
-                className='text-[11px] font-semibold'
-                style={getUserAvatarStyle(displayUsername)}
-              >
-                {getUserAvatarFallback(displayUsername)}
-              </AvatarFallback>
-            </Avatar>
-            <div className='min-w-0'>
-              <div
-                className='max-w-[150px] truncate font-medium'
-                title={displayUsername}
-              >
-                {displayUsername}
-              </div>
-              <div className='text-muted-foreground font-mono text-[11px]'>
-                {item.request_id}
-              </div>
-            </div>
-          </div>
-        </td>
-        <td className='px-3 py-2.5'>
-          <div className='flex min-w-0 flex-col gap-0.5'>
-            <ModelBadge
-              modelName={item.model_name || '-'}
-              className='max-w-[220px]'
-            />
-            <div
-              className='text-muted-foreground max-w-[220px] truncate text-xs'
-              title={item.endpoint_path}
-            >
-              {item.endpoint_path}
-            </div>
-          </div>
-        </td>
-        <td className='px-3 py-2.5'>
-          <StatusBadge
-            label={requestType}
-            autoColor={requestType}
-            showDot={false}
-            copyable={false}
-            className='border-border/60 bg-muted/30 h-6 rounded-md border px-2 [font-family:var(--font-body)]'
-          />
-        </td>
-        <td className='px-3 py-2.5 font-mono text-xs'>
-          {formatBytes(item.content_size)}
-          {item.asset_count > 0 && ` · ${item.asset_count} ${t('assets')}`}
-        </td>
-        <td className='px-3 py-2.5'>
-          <StatusBadge
-            label={statusLabel}
-            variant={statusVariant}
-            showDot
-            copyable={false}
-          />
-        </td>
-        <td className='px-3 py-2.5 text-right'>
-          <div className='flex justify-end gap-1'>
-            <Button
-              type='button'
-              size='sm'
-              variant='ghost'
-              onClick={(event) => {
-                event.stopPropagation()
-                props.onSelect(item)
-              }}
-            >
-              {t('View')}
-            </Button>
-            <Button
-              type='button'
-              size='sm'
-              variant='ghost'
-              onClick={(event) => {
-                event.stopPropagation()
-                props.onUsageLog(item.request_id)
-              }}
-            >
-              <ExternalLink className='mr-1 size-3.5' />
-              {t('Usage Log')}
-            </Button>
-          </div>
-        </td>
-      </tr>
-    )
+  return props.items.map((item) => (
+    <RequestRecordsTableRow
+      highlighted={props.highlightRequestId === item.request_id}
+      item={item}
+      key={item.id}
+      onSelect={props.onSelect}
+      onUsageLog={props.onUsageLog}
+    />
+  ))
+}
+
+function RequestRecordsTableRow(props: {
+  item: RequestContentAuditSummary
+  highlighted: boolean
+  onSelect: (item: RequestContentAuditSummary) => void
+  onUsageLog: (requestId: string) => void
+}) {
+  const { t } = useTranslation()
+  const auditId = normalizeRequestContentAuditId(props.item.id)
+  const contentReady =
+    props.item.capture_status === 'complete' && props.item.content_available
+  // 只给当前页渲染出来的行取摘要，正文不可用的记录直接跳过请求。
+  const highlightQuery = useQuery({
+    queryKey: ['request-content-highlight', props.item.id],
+    queryFn: () => getRequestContentHighlight(auditId as number),
+    enabled: auditId != null && contentReady,
+    staleTime: 5 * 60 * 1000,
+    retry: false,
   })
+  const latestMessage = highlightQuery.data?.available
+    ? highlightQuery.data.preview?.trim() || ''
+    : ''
+
+  let statusLabel = t('Available')
+  let statusVariant: 'success' | 'warning' | 'danger' = 'success'
+  if (!contentReady) {
+    statusLabel = t('Unavailable')
+    statusVariant = 'danger'
+  } else if (props.item.is_redacted) {
+    statusLabel = t('Redacted')
+    statusVariant = 'warning'
+  }
+  const displayUsername = props.item.username || `#${props.item.user_id}`
+  const requestType = props.item.request_type || props.item.relay_format || '-'
+
+  return (
+    <tr
+      className={cn(
+        'hover:bg-muted/30 cursor-pointer border-b last:border-0',
+        props.highlighted &&
+          'bg-primary/5 animate-pulse ring-2 ring-inset ring-primary/40'
+      )}
+      onClick={() => props.onSelect(props.item)}
+    >
+      <td className='px-3 py-2.5 whitespace-nowrap'>
+        <span className='font-mono text-xs tabular-nums'>
+          {formatTimestampToDate(props.item.created_at)}
+        </span>
+      </td>
+      <td className='px-3 py-2.5'>
+        <div className='flex min-w-0 items-center gap-1.5'>
+          <Avatar className='ring-border/60 size-6 shrink-0 ring-1'>
+            <AvatarFallback
+              className='text-[11px] font-semibold'
+              style={getUserAvatarStyle(displayUsername)}
+            >
+              {getUserAvatarFallback(displayUsername)}
+            </AvatarFallback>
+          </Avatar>
+          <div className='min-w-0'>
+            <div
+              className='max-w-[150px] truncate font-medium'
+              title={displayUsername}
+            >
+              {displayUsername}
+            </div>
+            <div className='text-muted-foreground font-mono text-[11px]'>
+              {props.item.request_id}
+            </div>
+          </div>
+        </div>
+      </td>
+      <td className='px-3 py-2.5'>
+        <div className='flex min-w-0 flex-col gap-0.5'>
+          <ModelBadge
+            modelName={props.item.model_name || '-'}
+            className='max-w-[220px]'
+          />
+          <div
+            className='text-muted-foreground max-w-[220px] truncate text-xs'
+            title={props.item.endpoint_path}
+          >
+            {props.item.endpoint_path}
+          </div>
+        </div>
+      </td>
+      <td className='px-3 py-2.5'>
+        {latestMessage && (
+          <div
+            className='text-muted-foreground max-w-[280px] min-w-[140px] truncate text-xs'
+            data-slot='request-record-latest-message'
+            title={latestMessage}
+          >
+            {latestMessage}
+          </div>
+        )}
+      </td>
+      <td className='px-3 py-2.5'>
+        <StatusBadge
+          label={requestType}
+          autoColor={requestType}
+          showDot={false}
+          copyable={false}
+          className='border-border/60 bg-muted/30 h-6 rounded-md border px-2 [font-family:var(--font-body)]'
+        />
+      </td>
+      <td className='px-3 py-2.5 font-mono text-xs'>
+        {formatBytes(props.item.content_size)}
+        {props.item.asset_count > 0 &&
+          ` · ${props.item.asset_count} ${t('assets')}`}
+      </td>
+      <td className='px-3 py-2.5'>
+        <StatusBadge
+          label={statusLabel}
+          variant={statusVariant}
+          showDot
+          copyable={false}
+        />
+      </td>
+      <td className='px-3 py-2.5 text-right'>
+        <div className='flex justify-end gap-1'>
+          <Button
+            type='button'
+            size='sm'
+            variant='ghost'
+            onClick={(event) => {
+              event.stopPropagation()
+              props.onSelect(props.item)
+            }}
+          >
+            {t('View')}
+          </Button>
+          <Button
+            type='button'
+            size='sm'
+            variant='ghost'
+            onClick={(event) => {
+              event.stopPropagation()
+              props.onUsageLog(props.item.request_id)
+            }}
+          >
+            <ExternalLink className='mr-1 size-3.5' />
+            {t('Usage Log')}
+          </Button>
+        </div>
+      </td>
+    </tr>
+  )
 }
 
 function RequestContentDialog(props: {

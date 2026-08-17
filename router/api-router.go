@@ -297,6 +297,7 @@ func SetApiRouter(router *gin.Engine) {
 			requestContentRoute.GET("/by-request-id/:request_id/preview", controller.GetRequestContentAuditPreviewByRequestID)
 			requestContentRoute.GET("/:id", controller.GetRequestContentAudit)
 			requestContentRoute.GET("/:id/view", controller.GetRequestContentAuditView)
+			requestContentRoute.GET("/:id/highlight", controller.GetRequestContentAuditHighlight)
 			requestContentRoute.GET("/:id/view/sections/:section_id", controller.GetRequestContentAuditViewSection)
 			requestContentRoute.GET("/:id/preview", controller.GetRequestContentAuditPreview)
 			requestContentRoute.GET("/:id/content", controller.StreamRequestContentAuditContent)

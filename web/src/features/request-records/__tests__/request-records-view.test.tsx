@@ -105,6 +105,10 @@ mock.module('@/features/request-records/api', () => ({
   },
   getRequestContentAudits: async () => page,
   getRequestContentAssetBlob: async () => new Blob(),
+  getRequestContentHighlight: async () => ({
+    request_id: summary.request_id,
+    available: false,
+  }),
   getRequestContentPreview: async () => ({
     content: '',
     redacted: false,
@@ -128,6 +132,7 @@ mock.module('@/features/request-records/api', () => ({
       input_item_count: 0,
       message_count: 0,
       sections_truncated: false,
+      omitted_section_count: 0,
       tool_call_count: 0,
       tool_output_count: 0,
       reasoning_count: 0,

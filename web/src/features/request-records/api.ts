@@ -1,10 +1,11 @@
 // web/src/features/request-records/api.ts
-// 请求记录列表、详情、预览、流式正文和二进制资源请求。
+// 请求记录列表、详情、预览、最新用户消息摘要、流式正文和二进制资源请求。
 
 import { api, getFreshAuthHeaders } from '@/lib/api'
 
 import type {
   RequestContentAuditDetail,
+  RequestContentAuditHighlight,
   RequestContentAuditListParams,
   RequestContentAuditPage,
   RequestContentAuditPreview,
@@ -76,6 +77,28 @@ export async function getRequestContentPreview(
 ): Promise<RequestContentAuditPreview> {
   const response = await api.get(`${requestRecordsPath}/${id}/preview`)
   return response.data.data as RequestContentAuditPreview
+}
+
+// 列表页每一行都会调它，属于装饰性信息：接口报错、业务失败或正文不可读时统一降级成
+// "没有可展示的用户消息"，不弹 toast 也不让整页的错误处理介入。
+export async function getRequestContentHighlight(
+  id: number
+): Promise<RequestContentAuditHighlight> {
+  try {
+    const response = await api.get(`${requestRecordsPath}/${id}/highlight`, {
+      skipBusinessError: true,
+      skipErrorHandler: true,
+    })
+    const highlight = response.data?.data as
+      | RequestContentAuditHighlight
+      | undefined
+    if (!highlight || response.data?.success === false) {
+      return { request_id: '', available: false }
+    }
+    return highlight
+  } catch {
+    return { request_id: '', available: false }
+  }
 }
 
 export async function getRequestContentPreviewByRequestId(

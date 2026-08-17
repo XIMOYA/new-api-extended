@@ -7,6 +7,7 @@ import { after, test } from 'node:test'
 
 import { Window } from 'happy-dom'
 
+import { requestContentConciseViewStorageKey } from '../lib/concise-view'
 import type { RequestContentAuditView } from '../types'
 
 const bunTestModule = ['bun', 'test'].join(':')
@@ -17,6 +18,7 @@ const domGlobals = [
   'window',
   'document',
   'navigator',
+  'localStorage',
   'HTMLElement',
   'HTMLButtonElement',
   'SVGElement',
@@ -55,6 +57,10 @@ Object.defineProperty(globalThis, 'matchMedia', {
 })
 
 const sectionRequests: string[] = []
+// 这个文件验证的是完整视图（工具结果、推理区块都要在场），所以先明确关掉简洁模式，
+// 不依赖同一进程里别的测试文件留下的开关状态。
+localStorage.setItem(requestContentConciseViewStorageKey, 'false')
+
 // 只替换区块正文接口，其余导出保持真实实现，避免同一进程里的其它测试文件拿不到导出。
 const actualApi = await import('@/features/request-records/api')
 mock.module('@/features/request-records/api', () => ({
@@ -108,6 +114,7 @@ const baseSummary = {
   input_item_count: 1,
   message_count: 0,
   sections_truncated: false,
+  omitted_section_count: 0,
   tool_call_count: 0,
   tool_output_count: 0,
   reasoning_count: 0,
@@ -187,6 +194,7 @@ test('renders classified sections without loading full content by default', asyn
                 input_item_count: 3,
                 message_count: 1,
                 sections_truncated: false,
+                omitted_section_count: 0,
                 tool_call_count: 1,
                 tool_output_count: 1,
                 reasoning_count: 0,

@@ -47,6 +47,8 @@ export type RequestContentAuditViewSummary = {
   input_item_count: number
   message_count: number
   sections_truncated: boolean
+  // 投影只保留序列头尾两段时中间跳过的条数，没跳过时为 0。
+  omitted_section_count: number
   tool_call_count: number
   tool_output_count: number
   reasoning_count: number
@@ -115,6 +117,22 @@ export type RequestContentAuditPage = {
   page_size: number
   total: number
   items: RequestContentAuditSummary[]
+}
+
+// 对应 service/request_content_audit_highlight.go：这条记录里最后一条用户消息的定位信息。
+// available 为 false 时只有 request_id 和 message 可用（正文不可用、raw/multipart 记录等）。
+export type RequestContentAuditHighlight = {
+  request_id: string
+  available: boolean
+  section_id?: string
+  section_index?: number
+  role?: string
+  preview?: string
+  content_size?: number
+  message_count?: number
+  section_count?: number
+  truncated?: boolean
+  message?: string
 }
 
 export type RequestContentAuditPreview = {

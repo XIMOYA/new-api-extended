@@ -27,6 +27,7 @@ const (
 	requestContentViewPreviewBytes          = 1 << 10
 	requestContentViewSectionBytes          = 512 << 10
 	requestContentViewMaxSections           = 256
+	requestContentViewHeadSections          = 32
 	requestContentViewMaxDepth              = 32
 	requestContentViewMaxNodes              = 4096
 	requestContentViewMaxFields             = 512
@@ -66,16 +67,17 @@ type RequestContentAuditViewRetention struct {
 }
 
 type RequestContentAuditViewSummary struct {
-	InputItemCount     int   `json:"input_item_count"`
-	MessageCount       int   `json:"message_count"`
-	SectionsTruncated  bool  `json:"sections_truncated"`
-	ToolCallCount      int   `json:"tool_call_count"`
-	ToolOutputCount    int   `json:"tool_output_count"`
-	ReasoningCount     int   `json:"reasoning_count"`
-	AdvancedFieldCount int   `json:"advanced_field_count"`
-	OpaqueBytes        int64 `json:"opaque_bytes"`
-	DroppedBytes       int64 `json:"dropped_bytes"`
-	AssetCount         int   `json:"asset_count"`
+	InputItemCount      int   `json:"input_item_count"`
+	MessageCount        int   `json:"message_count"`
+	SectionsTruncated   bool  `json:"sections_truncated"`
+	ToolCallCount       int   `json:"tool_call_count"`
+	ToolOutputCount     int   `json:"tool_output_count"`
+	ReasoningCount      int   `json:"reasoning_count"`
+	AdvancedFieldCount  int   `json:"advanced_field_count"`
+	OpaqueBytes         int64 `json:"opaque_bytes"`
+	DroppedBytes        int64 `json:"dropped_bytes"`
+	OmittedSectionCount int   `json:"omitted_section_count"`
+	AssetCount          int   `json:"asset_count"`
 }
 
 type RequestContentAuditViewSection struct {
@@ -218,12 +220,22 @@ func buildRequestContentViewSections(payload any) ([]RequestContentAuditViewSect
 		for _, key := range sequenceKeys {
 			items := payloadMap[key].([]any)
 			summary.InputItemCount += len(items)
-			if len(items) > requestContentViewMaxSections-len(sections) {
+			budget := requestContentViewMaxSections - len(sections)
+			if budget <= 0 {
 				summary.SectionsTruncated = true
+				summary.OmittedSectionCount += len(items)
+				continue
+			}
+			// agent 客户端每轮重发整段对话，最新一轮排在末尾，所以超额时保留开头的上下文
+			// 和结尾的最近若干条，中间跳过并记录数量，否则站长在 UI 里根本看不到刚发的消息。
+			head, tailStart := selectRequestContentViewRange(len(items), budget)
+			if tailStart > head {
+				summary.SectionsTruncated = true
+				summary.OmittedSectionCount += tailStart - head
 			}
 			for index, item := range items {
-				if len(sections) >= requestContentViewMaxSections {
-					break
+				if index >= head && index < tailStart {
+					continue
 				}
 				sectionID := sequenceSectionID(key, index)
 				if key == "input" {
@@ -263,6 +275,30 @@ func buildRequestContentViewSections(payload any) ([]RequestContentAuditViewSect
 }
 
 var requestContentViewSequenceKeys = []string{"input", "messages", "items", "contents"}
+
+// selectRequestContentViewRange 决定超额序列保留哪些下标：前 head 条给上下文，
+// 后面从 tailStart 开始的都是最近的，中间跳过。总数没超额时返回 (total, total)。
+func selectRequestContentViewRange(total int, budget int) (int, int) {
+	if budget <= 0 {
+		return 0, total
+	}
+	if total <= budget {
+		return total, total
+	}
+	head := requestContentViewHeadSections
+	if head > budget/2 {
+		head = budget / 2
+	}
+	if head < 0 {
+		head = 0
+	}
+	tail := budget - head
+	tailStart := total - tail
+	if tailStart < head {
+		tailStart = head
+	}
+	return head, tailStart
+}
 
 func isRequestContentViewSequenceKey(key string) bool {
 	for _, candidate := range requestContentViewSequenceKeys {
@@ -368,7 +404,9 @@ func requestContentAuditSectionValue(payload any, sectionID string) (any, bool) 
 	}
 	if strings.HasPrefix(sectionID, "input-") {
 		index, err := strconv.Atoi(strings.TrimPrefix(sectionID, "input-"))
-		if err != nil || index < 0 || index >= requestContentViewMaxSections {
+		// 下标上界由序列长度本身把关：投影只返回头尾区块，但尾部区块的真实下标会超过
+		// 区块数上限，这里再按上限拦就会让最新那几条消息取不到详情。
+		if err != nil || index < 0 {
 			return nil, false
 		}
 		input, ok := payloadMap["input"].([]any)
@@ -709,7 +747,8 @@ func decodeSequenceSectionID(id string) (string, int, bool) {
 		return "", 0, false
 	}
 	index, err := strconv.Atoi(value[separator+1:])
-	if err != nil || index < 0 || index >= requestContentViewMaxSections {
+	// 同 input-<index>：真实下标可能大于区块数上限，越界交给序列长度判断。
+	if err != nil || index < 0 {
 		return "", 0, false
 	}
 	return string(keyBytes), index, true

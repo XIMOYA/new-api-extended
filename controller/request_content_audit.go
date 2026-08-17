@@ -177,6 +177,19 @@ func GetRequestContentAuditView(c *gin.Context) {
 	common.ApiSuccess(c, view)
 }
 
+func GetRequestContentAuditHighlight(c *gin.Context) {
+	store, audit, access, ok := loadAuthorizedRequestContentAudit(c, c.Param("id"))
+	if !ok {
+		return
+	}
+	highlight, err := service.BuildRequestContentAuditHighlight(c.Request.Context(), store, audit, access.Redacted)
+	if err != nil {
+		writeRequestContentAuditError(c, http.StatusInternalServerError, err)
+		return
+	}
+	common.ApiSuccess(c, highlight)
+}
+
 func GetRequestContentAuditViewSection(c *gin.Context) {
 	store, audit, access, ok := loadAuthorizedRequestContentAudit(c, c.Param("id"))
 	if !ok {
