@@ -289,7 +289,6 @@ func SetApiRouter(router *gin.Engine) {
 		requestContentRoute.Use(
 			middleware.UserAuth(),
 			middleware.CORS(),
-			middleware.CriticalRateLimit(),
 			controller.RequestContentAuditNoStore,
 		)
 		{
