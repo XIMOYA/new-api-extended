@@ -52,7 +52,24 @@ export type RequestContentAuditViewSummary = {
   reasoning_count: number
   advanced_field_count: number
   opaque_bytes: number
+  dropped_bytes: number
   asset_count: number
+}
+
+// 按保留策略丢弃的一个分类，kind 取值见 lib/retention.ts。
+export type RequestContentAuditViewRetentionCategory = {
+  kind: string
+  count: number
+  bytes: number
+}
+
+export type RequestContentAuditViewRetention = {
+  schema: number
+  kept_bytes: number
+  dropped_bytes: number
+  original_sha256?: string
+  original_size?: number
+  dropped?: RequestContentAuditViewRetentionCategory[]
 }
 
 export type RequestContentAuditViewSection = {
@@ -70,6 +87,9 @@ export type RequestContentAuditViewSection = {
   opaque_bytes?: number
   opaque_hash?: string
   opaque: boolean
+  dropped?: boolean
+  dropped_kind?: string
+  dropped_bytes?: number
   expandable: boolean
   truncated: boolean
   asset_keys?: string[]
@@ -85,6 +105,7 @@ export type RequestContentAuditView = {
   stored_size: number
   projection_available: boolean
   projection_message?: string
+  retention?: RequestContentAuditViewRetention
   summary: RequestContentAuditViewSummary
   sections: RequestContentAuditViewSection[]
 }

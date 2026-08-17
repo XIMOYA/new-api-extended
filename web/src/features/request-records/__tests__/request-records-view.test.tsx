@@ -133,6 +133,7 @@ mock.module('@/features/request-records/api', () => ({
       reasoning_count: 0,
       advanced_field_count: 0,
       opaque_bytes: 0,
+      dropped_bytes: 0,
       asset_count: 0,
     },
     sections: [],

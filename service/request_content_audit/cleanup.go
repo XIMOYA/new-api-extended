@@ -18,11 +18,17 @@ type CleanupReport struct {
 	AssetCount       int64
 	ObjectCount      int64
 	RemovedFileCount int64
+	BlobCount        int64
+	PackCount        int64
 }
 
 func (store *Store) CleanupExpired(ctx context.Context, cutoff time.Time, batchSize int) (CleanupReport, error) {
 	requestContentAuditWriteMu.Lock()
 	defer requestContentAuditWriteMu.Unlock()
+
+	// 去重记录的正文只是清单，必须在删除前把块引用读出来，否则共享块永远减不掉引用。
+	releasing, manifestErrors := store.collectExpiringManifestRefs(ctx, cutoff, batchSize)
+
 	deleted, err := store.repository.DeleteExpiredBatch(ctx, cutoff.Unix(), batchSize)
 	if err != nil {
 		return CleanupReport{}, err
@@ -55,7 +61,56 @@ func (store *Store) CleanupExpired(ctx context.Context, cutoff time.Time, batchS
 		}
 		report.RemovedFileCount++
 	}
+	cleanupErrors = append(cleanupErrors, manifestErrors...)
+
+	if store.packs != nil && len(releasing) > 0 {
+		if err := store.packs.ReleaseItems(ctx, releasing); err != nil {
+			cleanupErrors = append(cleanupErrors, fmt.Errorf("release request content audit blobs: %w", err))
+		}
+	}
+	if store.packs != nil {
+		blobReport, err := store.packs.CleanupBlobs(ctx, cutoff, batchSize)
+		if err != nil {
+			cleanupErrors = append(cleanupErrors, fmt.Errorf("cleanup request content audit blobs: %w", err))
+		}
+		report.BlobCount = blobReport.BlobCount
+		report.PackCount = blobReport.PackCount
+		if len(blobReport.Paths) > 0 {
+			removed, err := store.packs.RemovePackFiles(blobReport.Paths)
+			if err != nil {
+				cleanupErrors = append(cleanupErrors, fmt.Errorf("remove request content audit pack files: %w", err))
+			}
+			report.RemovedFileCount += removed
+		}
+	}
 	return report, errors.Join(cleanupErrors...)
+}
+
+// collectExpiringManifestRefs 读取即将过期记录的清单，返回其中引用的内容块。
+func (store *Store) collectExpiringManifestRefs(ctx context.Context, cutoff time.Time, batchSize int) ([]BlobRef, []error) {
+	if store.packs == nil {
+		return nil, nil
+	}
+	audits, err := store.repository.ExpiringAudits(ctx, cutoff.Unix(), batchSize)
+	if err != nil {
+		return nil, []error{fmt.Errorf("list expiring request content audits: %w", err)}
+	}
+	var refs []BlobRef
+	var failures []error
+	for index := range audits {
+		audit := &audits[index]
+		if audit.IntegrityVersion < manifestIntegrityVersion || audit.ContentPath == "" {
+			continue
+		}
+		manifest, err := store.readAuditManifest(ctx, audit)
+		if err != nil {
+			// 清单损坏时只记录，不阻塞记录删除；残留块会由过期扫描兜底回收。
+			failures = append(failures, fmt.Errorf("read request content audit manifest %d: %w", audit.Id, err))
+			continue
+		}
+		refs = append(refs, manifest.Chunks...)
+	}
+	return refs, failures
 }
 
 func (store *Store) CleanupOrphans(ctx context.Context, olderThan time.Time) (int64, error) {
@@ -104,7 +159,59 @@ func (store *Store) CleanupOrphans(ctx context.Context, olderThan time.Time) (in
 			return removed, err
 		}
 	}
-	return removed, nil
+	packRemoved, err := store.cleanupOrphanPacks(ctx, olderThan)
+	removed += packRemoved
+	return removed, err
+}
+
+// cleanupOrphanPacks 清掉 packs 目录里没有数据库记录指向的文件，兜住"记录已删、文件删除失败"的残留。
+func (store *Store) cleanupOrphanPacks(ctx context.Context, olderThan time.Time) (int64, error) {
+	if store.packs == nil {
+		return 0, nil
+	}
+	referenced, err := store.packs.ReferencedPackPaths(ctx)
+	if err != nil {
+		return 0, err
+	}
+	packRoot := filepath.Join(store.root, "packs")
+	if _, err := os.Stat(packRoot); err != nil {
+		if os.IsNotExist(err) {
+			return 0, nil
+		}
+		return 0, err
+	}
+	var removed int64
+	err = filepath.WalkDir(packRoot, func(path string, entry fs.DirEntry, walkErr error) error {
+		if walkErr != nil {
+			return walkErr
+		}
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		if entry.IsDir() || entry.Type()&os.ModeSymlink != 0 || filepath.Ext(path) != ".rap" {
+			return nil
+		}
+		info, err := entry.Info()
+		if err != nil {
+			return err
+		}
+		if !olderThan.IsZero() && !info.ModTime().Before(olderThan) {
+			return nil
+		}
+		relativePath, err := filepath.Rel(store.root, path)
+		if err != nil {
+			return err
+		}
+		if _, exists := referenced[filepath.ToSlash(relativePath)]; exists {
+			return nil
+		}
+		if err := os.Remove(path); err != nil {
+			return err
+		}
+		removed++
+		return nil
+	})
+	return removed, err
 }
 
 func (store *Store) CleanupTemporaryFiles(ctx context.Context, olderThan time.Time) (int64, error) {

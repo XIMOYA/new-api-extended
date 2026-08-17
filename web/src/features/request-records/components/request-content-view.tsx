@@ -1,5 +1,6 @@
 // web/src/features/request-records/components/request-content-view.tsx
-// 请求内容结构化视图：按消息、工具调用、工具结果和高级参数分组，并在展开区块时读取受限正文。
+// 请求内容结构化视图：按消息、工具调用、工具结果和高级参数分组，展开区块时才读取受限正文，
+// 并区分「加密内容」与「按保留策略未保存的内容」。
 
 import { useQuery } from '@tanstack/react-query'
 import {
@@ -24,10 +25,19 @@ import {
 } from '@/components/ui/collapsible'
 import { getRequestContentViewSection } from '@/features/request-records/api'
 
+import {
+  formatRequestContentBytes as formatBytes,
+  resolveRequestContentDropped,
+} from '../lib/retention'
 import type {
   RequestContentAuditView,
   RequestContentAuditViewSection,
 } from '../types'
+import {
+  RequestContentDroppedBadge,
+  RequestContentDroppedNotice,
+  RequestContentRetentionSummary,
+} from './request-content-retention'
 
 export function RequestContentView(props: {
   auditId: number
@@ -74,6 +84,10 @@ export function RequestContentView(props: {
           </div>
         ))}
       </div>
+
+      {props.view.retention && (
+        <RequestContentRetentionSummary retention={props.view.retention} />
+      )}
 
       {props.view.summary.sections_truncated && (
         <div className='rounded-md border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-xs text-amber-700 dark:text-amber-300'>
@@ -131,9 +145,12 @@ function RequestContentViewSection(props: {
   const hasLoadedContent = Boolean(sectionQuery.data?.content)
   const preview = props.section.preview || t('No content')
   const opaque = sectionQuery.data?.opaque || props.section.opaque
-  const content = opaque
-    ? t('Encrypted content is hidden')
-    : sectionQuery.data?.content || preview
+  const dropped = resolveRequestContentDropped(props.section, sectionQuery.data)
+  // 裁剪掉的内容不是加密内容，提示交给保留策略说明，正文位置继续展示还留着的部分。
+  const content =
+    opaque && !dropped.dropped
+      ? t('Encrypted content is hidden')
+      : sectionQuery.data?.content || preview
   const contentFormat = sectionQuery.data?.content_format || 'text'
   const icon = getSectionIcon(props.section.kind)
 
@@ -145,6 +162,9 @@ function RequestContentViewSection(props: {
           <span className='min-w-0 flex-1 truncate text-sm font-medium'>
             {label}
           </span>
+          {dropped.bytes > 0 && (
+            <RequestContentDroppedBadge bytes={dropped.bytes} />
+          )}
           <StatusBadge
             label={formatBytes(
               props.section.opaque_bytes || props.section.content_size
@@ -155,7 +175,14 @@ function RequestContentViewSection(props: {
           />
         </div>
         <div className='border-border/70 text-muted-foreground border-t px-3 py-3 text-xs'>
-          {t('Encrypted content is hidden')}
+          {dropped.dropped ? (
+            <RequestContentDroppedNotice
+              bytes={dropped.bytes}
+              kind={dropped.kind}
+            />
+          ) : (
+            t('Encrypted content is hidden')
+          )}
         </div>
       </div>
     )
@@ -255,11 +282,23 @@ function RequestContentViewSection(props: {
                 {formatBytes(props.section.opaque_bytes || 0)} {t('Opaque')}
               </span>
             )}
+            {dropped.bytes > 0 && (
+              <span className='text-amber-700 dark:text-amber-300'>
+                {formatBytes(dropped.bytes)} {t('Not Kept')}
+              </span>
+            )}
           </div>
         </div>
         <ChevronDown className='text-muted-foreground size-4 shrink-0 transition-transform group-data-[panel-open]:rotate-180' />
       </CollapsibleTrigger>
       <CollapsibleContent className='border-border/70 border-t px-3 py-3'>
+        {dropped.dropped && (
+          <RequestContentDroppedNotice
+            bytes={dropped.bytes}
+            className='mb-2'
+            kind={dropped.kind}
+          />
+        )}
         {sectionBody}
         {sectionQuery.data?.truncated && (
           <div className='text-muted-foreground mt-2 text-[11px]'>
@@ -345,14 +384,4 @@ function getSectionIcon(kind: string) {
     default:
       return <FileJson className='text-muted-foreground size-4 shrink-0' />
   }
-}
-
-function formatBytes(value: number): string {
-  if (!Number.isFinite(value) || value <= 0) return '0 B'
-  const units = ['B', 'KB', 'MB', 'GB']
-  const index = Math.min(
-    units.length - 1,
-    Math.floor(Math.log(value) / Math.log(1024))
-  )
-  return `${(value / 1024 ** index).toFixed(index === 0 ? 0 : 1)} ${units[index]}`
 }

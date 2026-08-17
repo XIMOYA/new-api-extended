@@ -4,7 +4,9 @@ package service
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -38,14 +40,16 @@ const (
 )
 
 type RequestContentEnvelope struct {
-	SchemaVersion int                   `json:"schema_version"`
-	Kind          string                `json:"kind"`
-	RequestID     string                `json:"request_id"`
-	RelayFormat   string                `json:"relay_format"`
-	ContentType   string                `json:"content_type"`
-	EndpointPath  string                `json:"endpoint_path"`
-	Payload       any                   `json:"payload,omitempty"`
-	Assets        []RequestContentAsset `json:"assets,omitempty"`
+	SchemaVersion int                         `json:"schema_version"`
+	Kind          string                      `json:"kind"`
+	RequestID     string                      `json:"request_id"`
+	RelayFormat   string                      `json:"relay_format"`
+	ContentType   string                      `json:"content_type"`
+	EndpointPath  string                      `json:"endpoint_path"`
+	Payload       any                         `json:"payload,omitempty"`
+	Assets        []RequestContentAsset       `json:"assets,omitempty"`
+	Original      *RequestContentOriginal     `json:"original,omitempty"`
+	Prune         *RequestContentPruneSummary `json:"audit_prune,omitempty"`
 }
 
 type RequestContentAsset struct {
@@ -211,6 +215,13 @@ func buildRequestContentEnvelope(c *gin.Context, requestID string, relayFormat t
 		ContentType:   contentType,
 		EndpointPath:  c.Request.URL.Path,
 	}
+	if len(body) > 0 {
+		digest := sha256.Sum256(body)
+		envelope.Original = &RequestContentOriginal{
+			Sha256: hex.EncodeToString(digest[:]),
+			Size:   int64(len(body)),
+		}
+	}
 
 	if strings.Contains(strings.ToLower(contentType), "multipart/form-data") {
 		return buildMultipartEnvelope(c, envelope, maxAssetBytes)
@@ -226,7 +237,9 @@ func buildRequestContentEnvelope(c *gin.Context, requestID string, relayFormat t
 			if normalizeErr != nil {
 				return RequestContentEnvelope{}, nil, normalizeErr
 			}
-			envelope.Payload = normalized
+			pruned, pruneSummary := pruneRequestContentPayload(normalized)
+			envelope.Payload = pruned
+			envelope.Prune = &pruneSummary
 			envelope.Assets = refs
 			return envelope, assets, nil
 		}
@@ -343,10 +356,12 @@ func buildMultipartEnvelope(c *gin.Context, envelope RequestContentEnvelope, max
 		}
 	}
 	envelope.Kind = "multipart"
-	envelope.Payload = map[string]any{
+	prunedFields, pruneSummary := pruneRequestContentPayload(map[string]any{
 		"fields": fields,
 		"files":  files,
-	}
+	})
+	envelope.Payload = prunedFields
+	envelope.Prune = &pruneSummary
 	envelope.Assets = refs
 	return envelope, assets, nil
 }

@@ -33,12 +33,21 @@ func EnsureRequestContentAuditStore(ctx context.Context) (*auditstore.Store, err
 	if err != nil {
 		return nil, err
 	}
-	secret, err := requestContentAuditEncryptionSecret()
-	if err != nil {
-		return nil, err
+	secret, secretErr := requestContentAuditEncryptionSecret()
+	var keyProvider auditstore.KeyProvider
+	keyFingerprint := "unavailable"
+	if secretErr != nil {
+		keyProvider = unavailableRequestContentAuditKeyProvider{}
+	} else {
+		keyValue := sha256.Sum256([]byte(secret))
+		keyFingerprint = hex.EncodeToString(keyValue[:8])
+		keyProvider = &auditstore.StaticKeyProvider{
+			ActiveKeyId: requestContentAuditKeyID,
+			Keys: map[string][]byte{
+				requestContentAuditKeyID: keyValue[:],
+			},
+		}
 	}
-	keyValue := sha256.Sum256([]byte(secret))
-	keyFingerprint := hex.EncodeToString(keyValue[:8])
 	signature := fmt.Sprintf("%s:%d:%d:%d:%s", root, settings.ChunkSizeBytes, settings.MaxRecordBytes, settings.MaxAssetBytes, keyFingerprint)
 
 	requestContentAuditRuntime.RLock()
@@ -55,13 +64,12 @@ func EnsureRequestContentAuditStore(ctx context.Context) (*auditstore.Store, err
 		return requestContentAuditRuntime.store, nil
 	}
 
-	keyProvider := &auditstore.StaticKeyProvider{
-		ActiveKeyId: requestContentAuditKeyID,
-		Keys: map[string][]byte{
-			requestContentAuditKeyID: keyValue[:],
-		},
-	}
 	repository := model.NewRequestContentAuditRepository(model.DB)
+	packRepository := model.NewRequestContentPackRepository(model.DB)
+	packs, err := auditstore.NewPackStore(root, packRepository, keyProvider)
+	if err != nil {
+		return nil, err
+	}
 	store, err = auditstore.NewStore(
 		root,
 		repository,
@@ -69,6 +77,7 @@ func EnsureRequestContentAuditStore(ctx context.Context) (*auditstore.Store, err
 		auditstore.WithChunkSize(settings.ChunkSizeBytes),
 		auditstore.WithMaxContentSize(settings.MaxRecordBytes),
 		auditstore.WithMaxAssetSize(settings.MaxAssetBytes),
+		auditstore.WithPackStore(packs),
 	)
 	if err != nil {
 		return nil, err
@@ -90,6 +99,16 @@ func requestContentAuditEncryptionSecret() (string, error) {
 		return "", errors.New("request content audit requires a stable CRYPTO_SECRET or SESSION_SECRET")
 	}
 	return secret, nil
+}
+
+type unavailableRequestContentAuditKeyProvider struct{}
+
+func (unavailableRequestContentAuditKeyProvider) ActiveKey(context.Context) (auditstore.EncryptionKey, error) {
+	return auditstore.EncryptionKey{}, auditstore.ErrEncryptionKeyUnavailable
+}
+
+func (unavailableRequestContentAuditKeyProvider) Key(context.Context, string) ([]byte, error) {
+	return nil, auditstore.ErrEncryptionKeyUnavailable
 }
 
 func RequestContentAuditEncryptionReady() bool {

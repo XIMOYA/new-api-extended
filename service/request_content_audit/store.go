@@ -34,10 +34,19 @@ type Store struct {
 	temporaryRoot  string
 	repository     *model.RequestContentAuditRepository
 	keys           KeyProvider
+	packs          *PackStore
 	chunkSize      int
 	maxContentSize int64
 	maxAssetSize   int64
 	now            func() time.Time
+}
+
+// WithPackStore 打开跨请求去重：正文改成清单，内容块存进共享 pack。
+func WithPackStore(packs *PackStore) StoreOption {
+	return func(store *Store) error {
+		store.packs = packs
+		return nil
+	}
 }
 
 func WithChunkSize(chunkSize int) StoreOption {
@@ -192,6 +201,19 @@ func (store *Store) Store(ctx context.Context, input RecordInput) (*model.Reques
 	if err != nil {
 		return nil, err
 	}
+
+	if store.packs != nil {
+		buffered, remaining, err := readForManifest(input.Content, manifestMaxContentSize)
+		if err != nil {
+			return nil, err
+		}
+		if remaining == nil {
+			return store.storeDeduplicated(ctx, input, key, buffered)
+		}
+		// 超过去重上限，退回整段写入，注意把已读走的字节接回原始流。
+		input.Content = io.MultiReader(bytes.NewReader(buffered), remaining)
+	}
+
 	bodyTemporaryPath, bodyMetadata, err := writeEncryptedContainer(
 		ctx,
 		store.temporaryRoot,
@@ -252,6 +274,9 @@ func (store *Store) ReadAuditContent(ctx context.Context, audit *model.RequestCo
 	}
 	if destination == nil {
 		return errors.New("request content audit destination is nil")
+	}
+	if audit.IntegrityVersion >= manifestIntegrityVersion {
+		return store.readManifestContent(ctx, audit, destination)
 	}
 	return store.readRelative(ctx, audit.ContentPath, destination, fileMetadata{
 		Sha256:     audit.ContentSha256,

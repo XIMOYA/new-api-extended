@@ -146,6 +146,8 @@ func (repository *RequestContentAuditRepository) Migrate(ctx context.Context) er
 		&RequestContentAudit{},
 		&RequestContentObject{},
 		&RequestContentAsset{},
+		&RequestContentPack{},
+		&RequestContentBlob{},
 	)
 }
 
@@ -310,6 +312,24 @@ func (repository *RequestContentAuditRepository) GetAssetByKey(ctx context.Conte
 		return nil, err
 	}
 	return &asset, nil
+}
+
+// ExpiringAudits 返回下一批将被保留期清理掉的记录，筛选条件与 DeleteExpiredBatch 保持一致，
+// 供上层在删除前收集去重块引用。
+func (repository *RequestContentAuditRepository) ExpiringAudits(ctx context.Context, cutoff int64, batchSize int) ([]RequestContentAudit, error) {
+	if repository == nil || repository.db == nil {
+		return nil, errors.New("request content audit repository database is nil")
+	}
+	if batchSize <= 0 {
+		return nil, fmt.Errorf("request content audit cleanup batch size must be positive")
+	}
+	var audits []RequestContentAudit
+	err := repository.db.WithContext(ctx).
+		Where("expires_at > 0 AND expires_at <= ? AND legal_hold = ?", cutoff, false).
+		Order("expires_at ASC, id ASC").
+		Limit(batchSize).
+		Find(&audits).Error
+	return audits, err
 }
 
 func (repository *RequestContentAuditRepository) DeleteExpiredBatch(ctx context.Context, cutoff int64, batchSize int) (*DeletedRequestContentFiles, error) {

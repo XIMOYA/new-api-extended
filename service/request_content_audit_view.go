@@ -41,17 +41,28 @@ var (
 )
 
 type RequestContentAuditView struct {
-	RequestID           string                           `json:"request_id"`
-	SchemaVersion       int                              `json:"schema_version,omitempty"`
-	RelayFormat         string                           `json:"relay_format"`
-	EndpointPath        string                           `json:"endpoint_path,omitempty"`
-	Kind                string                           `json:"kind"`
-	SourceSize          int64                            `json:"source_size"`
-	StoredSize          int64                            `json:"stored_size"`
-	ProjectionAvailable bool                             `json:"projection_available"`
-	ProjectionMessage   string                           `json:"projection_message,omitempty"`
-	Summary             RequestContentAuditViewSummary   `json:"summary"`
-	Sections            []RequestContentAuditViewSection `json:"sections"`
+	RequestID           string                            `json:"request_id"`
+	SchemaVersion       int                               `json:"schema_version,omitempty"`
+	RelayFormat         string                            `json:"relay_format"`
+	EndpointPath        string                            `json:"endpoint_path,omitempty"`
+	Kind                string                            `json:"kind"`
+	SourceSize          int64                             `json:"source_size"`
+	StoredSize          int64                             `json:"stored_size"`
+	ProjectionAvailable bool                              `json:"projection_available"`
+	ProjectionMessage   string                            `json:"projection_message,omitempty"`
+	Retention           *RequestContentAuditViewRetention `json:"retention,omitempty"`
+	Summary             RequestContentAuditViewSummary    `json:"summary"`
+	Sections            []RequestContentAuditViewSection  `json:"sections"`
+}
+
+// RequestContentAuditViewRetention 描述这条记录按保留策略丢弃了哪些内容。
+type RequestContentAuditViewRetention struct {
+	Schema         int                           `json:"schema"`
+	KeptBytes      int64                         `json:"kept_bytes"`
+	DroppedBytes   int64                         `json:"dropped_bytes"`
+	OriginalSha256 string                        `json:"original_sha256,omitempty"`
+	OriginalSize   int64                         `json:"original_size,omitempty"`
+	Dropped        []RequestContentPruneCategory `json:"dropped,omitempty"`
 }
 
 type RequestContentAuditViewSummary struct {
@@ -63,6 +74,7 @@ type RequestContentAuditViewSummary struct {
 	ReasoningCount     int   `json:"reasoning_count"`
 	AdvancedFieldCount int   `json:"advanced_field_count"`
 	OpaqueBytes        int64 `json:"opaque_bytes"`
+	DroppedBytes       int64 `json:"dropped_bytes"`
 	AssetCount         int   `json:"asset_count"`
 }
 
@@ -81,6 +93,9 @@ type RequestContentAuditViewSection struct {
 	OpaqueBytes   int64    `json:"opaque_bytes,omitempty"`
 	OpaqueHash    string   `json:"opaque_hash,omitempty"`
 	Opaque        bool     `json:"opaque"`
+	Dropped       bool     `json:"dropped,omitempty"`
+	DroppedKind   string   `json:"dropped_kind,omitempty"`
+	DroppedBytes  int64    `json:"dropped_bytes,omitempty"`
 	Expandable    bool     `json:"expandable"`
 	Truncated     bool     `json:"truncated"`
 	AssetKeys     []string `json:"asset_keys,omitempty"`
@@ -122,6 +137,7 @@ func BuildRequestContentAuditView(ctx context.Context, store *auditstore.Store, 
 	payload := envelope["payload"]
 	sections, summary := buildRequestContentViewSections(payload)
 	summary.AssetCount = view.Summary.AssetCount
+	view.Retention = requestContentRetentionFromEnvelope(envelope)
 	view.Summary = summary
 	view.Sections = sections
 	view.ProjectionAvailable = true
@@ -312,6 +328,11 @@ func buildRequestContentViewSection(id string, value any) RequestContentAuditVie
 	if section.OpaqueBytes > 0 {
 		section.OpaqueHash = opaqueHash(value)
 	}
+	if droppedBytes, droppedKind := requestContentDroppedStats(value, 0); droppedBytes > 0 {
+		section.Dropped = true
+		section.DroppedKind = droppedKind
+		section.DroppedBytes = droppedBytes
+	}
 	if section.Kind == "reasoning" {
 		section.Opaque = true
 		section.Expandable = false
@@ -324,6 +345,7 @@ func buildRequestContentViewSection(id string, value any) RequestContentAuditVie
 
 func updateRequestContentViewSummary(summary *RequestContentAuditViewSummary, section RequestContentAuditViewSection) {
 	summary.OpaqueBytes += section.OpaqueBytes
+	summary.DroppedBytes += section.DroppedBytes
 	switch section.Kind {
 	case "message":
 		summary.MessageCount++

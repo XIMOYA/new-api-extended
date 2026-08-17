@@ -33,9 +33,10 @@ const (
 )
 
 var (
-	containerMagic       = [8]byte{'N', 'A', 'R', 'A', 'U', 'D', '0', '1'}
-	ErrIntegrityMismatch = errors.New("request content audit integrity check failed")
-	ErrSizeLimitExceeded = errors.New("request content audit size limit exceeded")
+	containerMagic              = [8]byte{'N', 'A', 'R', 'A', 'U', 'D', '0', '1'}
+	ErrIntegrityMismatch        = errors.New("request content audit integrity check failed")
+	ErrSizeLimitExceeded        = errors.New("request content audit size limit exceeded")
+	ErrEncryptionKeyUnavailable = errors.New("request content audit encryption key is unavailable")
 )
 
 type EncryptionKey struct {

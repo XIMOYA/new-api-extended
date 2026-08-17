@@ -23,6 +23,8 @@ type RequestContentAuditCleanupResult struct {
 	AuditCount         int64 `json:"audit_count"`
 	AssetCount         int64 `json:"asset_count"`
 	ObjectCount        int64 `json:"object_count"`
+	BlobCount          int64 `json:"blob_count"`
+	PackCount          int64 `json:"pack_count"`
 	RemovedFileCount   int64 `json:"removed_file_count"`
 	OrphanFileCount    int64 `json:"orphan_file_count"`
 	TemporaryFileCount int64 `json:"temporary_file_count"`
@@ -93,8 +95,11 @@ func (requestContentAuditCleanupHandler) Run(ctx context.Context, task *model.Sy
 		result.AuditCount += report.AuditCount
 		result.AssetCount += report.AssetCount
 		result.ObjectCount += report.ObjectCount
+		result.BlobCount += report.BlobCount
+		result.PackCount += report.PackCount
 		result.RemovedFileCount += report.RemovedFileCount
-		if report.AuditCount == 0 {
+		// 记录删完后还要继续排空块回收，否则共享块要等到下一轮任务才释放。
+		if report.AuditCount == 0 && report.BlobCount == 0 {
 			break
 		}
 	}
