@@ -41,3 +41,12 @@ service/relayconvert/chat_responses_live_local_test.go
 service/openaicompat/chat_responses_live_local_test.go
 go.work
 go.work.sum
+
+# Local deploy workspace: module/build caches, cross-compiled binaries, server backups.
+.deploy/
+# Narrator scratch notes and attachments.
+.narrafork/
+# Cross-compiled and packaged binaries produced by local deploy runs.
+new-api-linux-amd64
+new-api-windows-amd64*
+*.exe.gz
