@@ -16,6 +16,8 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
+// web/src/features/system-settings/models/routing-reliability-section.tsx
+// 模型设置 - 路由可靠性：重试次数、静默切换渠道、渠道巡检与自动禁用规则的表单与保存。
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMemo, useRef } from 'react'
 import { useForm } from 'react-hook-form'
@@ -66,6 +68,10 @@ const numericString = z.string().refine((value) => {
 const channelTestModes = ['scheduled_all', 'passive_recovery'] as const
 type ChannelTestMode = (typeof channelTestModes)[number]
 
+// 与后端 operation_setting.MaxSilentChannelSwitchAttempts 保持一致，超过会被后端截断。
+const SILENT_SWITCH_MAX_ATTEMPTS = 32
+const silentSwitchAttemptsMessage = 'Enter a whole number between 0 and 32'
+
 const routingReliabilitySchema = z
   .object({
     RetryTimes: z.coerce.number().min(0).max(10),
@@ -75,6 +81,13 @@ const routingReliabilitySchema = z
     AutomaticDisableKeywords: z.string(),
     AutomaticDisableStatusCodes: z.string(),
     AutomaticRetryStatusCodes: z.string(),
+    SilentChannelSwitchEnabled: z.boolean(),
+    SilentChannelSwitchMessage: z.string(),
+    SilentChannelSwitchMaxAttempts: z.coerce
+      .number()
+      .int(silentSwitchAttemptsMessage)
+      .min(0, silentSwitchAttemptsMessage)
+      .max(SILENT_SWITCH_MAX_ATTEMPTS, silentSwitchAttemptsMessage),
     monitor_setting: z.object({
       auto_test_channel_enabled: z.boolean(),
       auto_test_channel_minutes: z.coerce
@@ -124,6 +137,9 @@ type RoutingReliabilitySectionProps = {
     AutomaticDisableKeywords: string
     AutomaticDisableStatusCodes: string
     AutomaticRetryStatusCodes: string
+    SilentChannelSwitchEnabled: boolean
+    SilentChannelSwitchMessage: string
+    SilentChannelSwitchMaxAttempts: number
     'monitor_setting.auto_test_channel_enabled': boolean
     'monitor_setting.auto_test_channel_minutes': number
     'monitor_setting.channel_test_mode': ChannelTestMode
@@ -142,6 +158,9 @@ type NormalizedRoutingReliabilityValues = {
   AutomaticDisableKeywords: string
   AutomaticDisableStatusCodes: string
   AutomaticRetryStatusCodes: string
+  SilentChannelSwitchEnabled: boolean
+  SilentChannelSwitchMessage: string
+  SilentChannelSwitchMaxAttempts: number
   'monitor_setting.auto_test_channel_enabled': boolean
   'monitor_setting.auto_test_channel_minutes': number
   'monitor_setting.channel_test_mode': ChannelTestMode
@@ -163,6 +182,9 @@ const buildFormDefaults = (
   ),
   AutomaticDisableStatusCodes: defaults.AutomaticDisableStatusCodes ?? '',
   AutomaticRetryStatusCodes: defaults.AutomaticRetryStatusCodes ?? '',
+  SilentChannelSwitchEnabled: defaults.SilentChannelSwitchEnabled,
+  SilentChannelSwitchMessage: defaults.SilentChannelSwitchMessage ?? '',
+  SilentChannelSwitchMaxAttempts: defaults.SilentChannelSwitchMaxAttempts ?? 0,
   monitor_setting: {
     auto_test_channel_enabled:
       defaults['monitor_setting.auto_test_channel_enabled'],
@@ -190,6 +212,11 @@ const normalizeDefaults = (
   AutomaticRetryStatusCodes: parseHttpStatusCodeRules(
     defaults.AutomaticRetryStatusCodes ?? ''
   ).normalized,
+  SilentChannelSwitchEnabled: defaults.SilentChannelSwitchEnabled,
+  SilentChannelSwitchMessage: (
+    defaults.SilentChannelSwitchMessage ?? ''
+  ).trim(),
+  SilentChannelSwitchMaxAttempts: defaults.SilentChannelSwitchMaxAttempts ?? 0,
   'monitor_setting.auto_test_channel_enabled':
     defaults['monitor_setting.auto_test_channel_enabled'],
   'monitor_setting.auto_test_channel_minutes':
@@ -215,6 +242,9 @@ const normalizeFormValues = (
   AutomaticRetryStatusCodes: parseHttpStatusCodeRules(
     values.AutomaticRetryStatusCodes
   ).normalized,
+  SilentChannelSwitchEnabled: values.SilentChannelSwitchEnabled,
+  SilentChannelSwitchMessage: values.SilentChannelSwitchMessage.trim(),
+  SilentChannelSwitchMaxAttempts: values.SilentChannelSwitchMaxAttempts,
   'monitor_setting.auto_test_channel_enabled':
     values.monitor_setting.auto_test_channel_enabled,
   'monitor_setting.auto_test_channel_minutes':
@@ -250,6 +280,8 @@ export function RoutingReliabilitySection({
   const autoDisableStatusCodes = form.watch('AutomaticDisableStatusCodes')
   const autoRetryStatusCodes = form.watch('AutomaticRetryStatusCodes')
   const channelTestMode = form.watch('monitor_setting.channel_test_mode')
+  // 关闭静默切换时只置灰下面两个字段，已保存的值保持不动，重新打开即可继续用。
+  const silentSwitchEnabled = form.watch('SilentChannelSwitchEnabled')
   const autoDisableParsed = useMemo(
     () => parseHttpStatusCodeRules(autoDisableStatusCodes),
     [autoDisableStatusCodes]
@@ -341,6 +373,94 @@ export function RoutingReliabilitySection({
                             {t('Normalized:')} {autoRetryParsed.normalized}
                           </span>
                         )}
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+          </div>
+
+          <Separator />
+
+          <div className='flex min-w-0 flex-col gap-4'>
+            <div className='flex flex-col gap-1'>
+              <h4 className='text-sm font-medium'>{t('Silent failover')}</h4>
+            </div>
+            <div className='grid min-w-0 gap-6 lg:grid-cols-2'>
+              <FormField
+                control={form.control}
+                name='SilentChannelSwitchEnabled'
+                render={({ field }) => (
+                  <SettingsSwitchItem>
+                    <SettingsSwitchContent>
+                      <FormLabel>{t('Silent channel switch')}</FormLabel>
+                      <FormDescription>
+                        {t(
+                          'Keep switching channels on upstream-side errors and return one unified message only after every channel fails'
+                        )}{' '}
+                        {t(
+                          'Errors raised by this site (insufficient user quota, invalid parameters, sensitive word blocks, no available channel) are never hidden, and the real upstream reason always stays in the server logs.'
+                        )}{' '}
+                        {t(
+                          'A streaming response that already started emitting output can only be interrupted, it cannot be switched silently.'
+                        )}
+                      </FormDescription>
+                    </SettingsSwitchContent>
+                    <FormControl>
+                      <Switch
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                  </SettingsSwitchItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name='SilentChannelSwitchMessage'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('Unified failure message')}</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder={t(
+                          'Upstream service is temporarily unavailable, please try again later'
+                        )}
+                        value={field.value}
+                        onChange={(event) => field.onChange(event.target.value)}
+                        disabled={!silentSwitchEnabled}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      {t(
+                        'Returned to users after every channel fails; leave empty to fall back to the built-in default message.'
+                      )}
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name='SilentChannelSwitchMaxAttempts'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('Max channels per request')}</FormLabel>
+                    <FormControl>
+                      <Input
+                        type='number'
+                        min={0}
+                        max={SILENT_SWITCH_MAX_ATTEMPTS}
+                        step={1}
+                        {...safeNumberFieldProps(field)}
+                        disabled={!silentSwitchEnabled}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      {t('0 follows the retry times limit, maximum 32')}
                     </FormDescription>
                     <FormMessage />
                   </FormItem>

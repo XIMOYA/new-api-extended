@@ -16,6 +16,8 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
+// web/src/features/system-settings/models/index.tsx
+// 模型设置页入口：声明各配置项默认值（默认值类型同时决定 option map 的解析方式），并挂载分区渲染。
 import { SettingsPage } from '../components/settings-page'
 import type { ModelSettings } from '../types'
 import {
@@ -146,6 +148,11 @@ const defaultModelSettings: ModelSettings = {
   AutomaticDisableStatusCodes: '401',
   AutomaticRetryStatusCodes:
     '100-199,300-399,401-407,409-499,500-503,505-523,525-599',
+  // 静默切换渠道：布尔按 'true'/'1' 解析，文案留空时后端回落内置默认值，
+  // 尝试上限 0 表示跟随 RetryTimes（后端硬上限 32）。
+  SilentChannelSwitchEnabled: false,
+  SilentChannelSwitchMessage: '',
+  SilentChannelSwitchMaxAttempts: 0,
   'monitor_setting.auto_test_channel_enabled': false,
   'monitor_setting.auto_test_channel_minutes': 10,
   'monitor_setting.channel_test_mode': 'scheduled_all',

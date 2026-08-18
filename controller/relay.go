@@ -75,8 +75,9 @@ func Relay(c *gin.Context, relayFormat types.RelayFormat) {
 	//originalModel := common.GetContextKeyString(c, constant.ContextKeyOriginalModel)
 
 	var (
-		newAPIError *types.NewAPIError
-		ws          *websocket.Conn
+		newAPIError    *types.NewAPIError
+		ws             *websocket.Conn
+		channelAttempt bool
 	)
 
 	if relayFormat == types.RelayFormatOpenAIRealtime {
@@ -92,6 +93,10 @@ func Relay(c *gin.Context, relayFormat types.RelayFormat) {
 	defer func() {
 		if newAPIError != nil {
 			logger.LogError(c, fmt.Sprintf("relay error: %s", common.LocalLogPreview(newAPIError.Error())))
+			// 静默切换渠道时对用户只给统一文案，真实原因留在上面的日志和错误日志里。
+			if operation_setting.ShouldHideUpstreamError(newAPIError, channelAttempt) {
+				newAPIError.SetMessage(operation_setting.SilentChannelSwitchMessageOrDefault())
+			}
 			newAPIError.SetMessage(common.MessageWithRequestId(newAPIError.Error(), requestId))
 			switch relayFormat {
 			case types.RelayFormatOpenAIRealtime:
@@ -198,7 +203,8 @@ func Relay(c *gin.Context, relayFormat types.RelayFormat) {
 	relayInfo.RetryIndex = 0
 	relayInfo.LastError = nil
 
-	for ; retryParam.GetRetry() <= common.RetryTimes; retryParam.IncreaseRetry() {
+	maxAttempts := operation_setting.SilentChannelSwitchAttempts(common.RetryTimes)
+	for ; retryParam.GetRetry() < maxAttempts; retryParam.IncreaseRetry() {
 		relayInfo.RetryIndex = retryParam.GetRetry()
 		channel, channelErr := getChannel(c, relayInfo, retryParam)
 		if channelErr != nil {
@@ -224,6 +230,7 @@ func Relay(c *gin.Context, relayFormat types.RelayFormat) {
 		}
 		c.Request.Body = io.NopCloser(bodyStorage)
 
+		channelAttempt = true
 		switch relayFormat {
 		case types.RelayFormatOpenAIRealtime:
 			newAPIError = relay.WssHelper(c, relayInfo)
@@ -245,7 +252,7 @@ func Relay(c *gin.Context, relayFormat types.RelayFormat) {
 
 		processChannelError(c, *types.NewChannelError(channel.Id, channel.Type, channel.Name, channel.ChannelInfo.IsMultiKey, common.GetContextKeyString(c, constant.ContextKeyChannelKey), channel.GetAutoBan()), newAPIError)
 
-		if !shouldRetry(c, newAPIError, common.RetryTimes-retryParam.GetRetry()) {
+		if !shouldRetry(c, newAPIError, maxAttempts-retryParam.GetRetry()-1) {
 			break
 		}
 	}
@@ -353,6 +360,11 @@ func shouldRetry(c *gin.Context, openaiErr *types.NewAPIError, retryTimes int) b
 	}
 	if _, ok := c.Get("specific_channel_id"); ok {
 		return false
+	}
+	// 上游自己欠费或被封禁时，有些供应商回的是 400 这类默认不重试的状态码，
+	// 静默切换下必须继续换渠道，否则第一个欠费渠道就把请求打回给用户了。
+	if operation_setting.SilentChannelSwitchEnabled && operation_setting.IsUpstreamExhaustedError(openaiErr) {
+		return true
 	}
 	code := openaiErr.StatusCode
 	if code >= 200 && code < 300 {
@@ -528,7 +540,8 @@ func RelayTask(c *gin.Context) {
 		Retry:       common.GetPointer(0),
 	}
 
-	for ; retryParam.GetRetry() <= common.RetryTimes; retryParam.IncreaseRetry() {
+	taskMaxAttempts := operation_setting.SilentChannelSwitchAttempts(common.RetryTimes)
+	for ; retryParam.GetRetry() < taskMaxAttempts; retryParam.IncreaseRetry() {
 		var channel *model.Channel
 
 		if lockedCh, ok := relayInfo.LockedChannel.(*model.Channel); ok && lockedCh != nil {
@@ -573,7 +586,7 @@ func RelayTask(c *gin.Context) {
 				types.NewOpenAIError(taskErr.Error, types.ErrorCodeBadResponseStatusCode, taskErr.StatusCode))
 		}
 
-		if !shouldRetryTaskRelay(c, channel.Id, taskErr, common.RetryTimes-retryParam.GetRetry()) {
+		if !shouldRetryTaskRelay(c, channel.Id, taskErr, taskMaxAttempts-retryParam.GetRetry()-1) {
 			break
 		}
 	}
@@ -622,6 +635,10 @@ func RelayTask(c *gin.Context) {
 func respondTaskError(c *gin.Context, taskErr *taskdto.TaskError) {
 	if taskErr.StatusCode == http.StatusTooManyRequests {
 		taskErr.Message = "当前分组上游负载已饱和，请稍后再试"
+	}
+	// 上游返回的任务错误同样不直接透给用户；LocalError 标记的是本站自身的错误。
+	if operation_setting.SilentChannelSwitchEnabled && !taskErr.LocalError {
+		taskErr.Message = operation_setting.SilentChannelSwitchMessageOrDefault()
 	}
 	c.JSON(taskErr.StatusCode, taskErr)
 }

@@ -287,6 +287,14 @@ export function ModelMutateDrawer({
   const modelSettings = useMemo(() => {
     if (!systemOptionsData?.data) return null
     const defaultModelSettings: ModelSettings = {
+      'request_content_audit.enabled': false,
+      'request_content_audit.allow_user_view': false,
+      'request_content_audit.admin_allowlist': [],
+      'request_content_audit.retention_days': 30,
+      'request_content_audit.storage_path': 'request-content-audit',
+      'request_content_audit.max_record_bytes': 128 * 1024 * 1024,
+      'request_content_audit.max_asset_bytes': 32 * 1024 * 1024,
+      'request_content_audit.chunk_size_bytes': 64 * 1024,
       'narrafork_setting.enabled': false,
       'narrafork_setting.allow_user_display_override': false,
       'narrafork_setting.allow_user_enabled': false,
@@ -400,6 +408,9 @@ export function ModelMutateDrawer({
       AutomaticDisableStatusCodes: '401',
       AutomaticRetryStatusCodes:
         '100-199,300-399,401-407,409-499,500-503,505-523,525-599',
+      SilentChannelSwitchEnabled: false,
+      SilentChannelSwitchMessage: '',
+      SilentChannelSwitchMaxAttempts: 0,
       'monitor_setting.auto_test_channel_enabled': false,
       'monitor_setting.auto_test_channel_minutes': 10,
       'monitor_setting.channel_test_mode': 'scheduled_all',
