@@ -191,6 +191,24 @@ func OaiStreamHandler(c *gin.Context, info *relaycommon.RelayInfo, resp *http.Re
 
 	HandleFinalResponse(c, info, lastStreamData, responseId, createAt, model, systemFingerprint, usage, containStreamUsage)
 
+	// 上游异常打断（超时、读取失败、未产出任何数据即断开）过去被静默当成功结算，
+	// 结果是残缺回答照常计费、也无法触发换渠道重试。这里把它显式转成错误交给上层判断。
+	// 若已有内容写给客户端，上层的首字节守卫会阻止整轮重发，仅在流内收尾。
+	if info.StreamStatus.IsUpstreamInterrupted(info.ReceivedResponseCount) {
+		endErr := info.StreamStatus.EndError
+		if endErr == nil {
+			endErr = fmt.Errorf("upstream stream interrupted: %s", info.StreamStatus.EndReason)
+		}
+		logger.LogError(c, fmt.Sprintf("upstream stream interrupted: %s, received=%d", info.StreamStatus.Summary(), info.ReceivedResponseCount))
+
+		// 已经吐给客户端的内容必须照实结算：上层失败路径会整笔退还预扣费，
+		// 若不在这里落账，被打断的半个回答就变成完全免费，成本全部由平台承担。
+		if info.GetSendResponseCount() > 0 {
+			service.PostTextConsumeQuota(c, info, usage, nil)
+		}
+		return usage, types.NewOpenAIError(endErr, types.ErrorCodeBadResponse, http.StatusInternalServerError)
+	}
+
 	return usage, nil
 }
 

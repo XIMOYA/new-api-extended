@@ -174,6 +174,11 @@ type RelayInfo struct {
 
 	StreamStatus *StreamStatus
 
+	// StreamRelay 记录跨渠道流式接力续写的状态。
+	// 上游在流中途失败（典型是余额耗尽）时，SSE 的状态码与已发内容都无法撤回，
+	// 只能让下一个渠道在同一条连接里接着写，因此需要跨重试保留已输出内容与前导事件状态。
+	StreamRelay *StreamRelayState
+
 	// convOptions caches the converter settings snapshot (see ConvOptions).
 	convOptions *convmeta.Options
 
@@ -610,6 +615,12 @@ func GenRelayInfo(c *gin.Context, relayFormat types.RelayFormat, request dto.Req
 	}
 
 	info.InitRequestConversionChain()
+
+	// 流式请求预备接力状态：一旦上游在流中途失败，需要靠它记住已经发给客户端的内容，
+	// 才能让接替的渠道在同一条 SSE 连接里从断点继续。
+	if info.IsStream {
+		info.StreamRelay = NewStreamRelayState()
+	}
 	return info, nil
 }
 

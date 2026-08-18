@@ -15,6 +15,7 @@ import (
 	"github.com/QuantumNous/new-api/relaykit/types"
 	"github.com/QuantumNous/new-api/service"
 	"github.com/QuantumNous/new-api/setting/model_setting"
+	"github.com/QuantumNous/new-api/setting/operation_setting"
 
 	"github.com/gin-gonic/gin"
 )
@@ -91,7 +92,14 @@ func HandleStreamResponseData(c *gin.Context, info *relaycommon.RelayInfo, claud
 		return types.NewError(err, types.ErrorCodeBadResponseBody)
 	}
 	if claudeError := claudeResponse.GetClaudeError(); claudeError != nil && claudeError.Type != "" {
-		return types.WithClaudeError(*claudeError, http.StatusInternalServerError)
+		streamErr := types.WithClaudeError(*claudeError, http.StatusInternalServerError)
+		// 上游也可能在流中途以 error 事件报余额耗尽。这里改标记成渠道错误，
+		// 否则它会以固定 500 的形态混在普通上游错误里，无法触发渠道禁用与后续避让。
+		// 判定复用 operation_setting.IsUpstreamExhaustedError，与渠道自动禁用同一套特征。
+		if operation_setting.IsUpstreamExhaustedError(streamErr) && !types.IsChannelError(streamErr) {
+			streamErr.SetErrorCode(types.ErrorCodeChannelUpstreamQuotaExhausted)
+		}
+		return streamErr
 	}
 	if claudeResponse.StopReason != "" {
 		maybeMarkClaudeRefusal(c, claudeResponse.StopReason)
@@ -121,7 +129,13 @@ func HandleStreamResponseData(c *gin.Context, info *relaycommon.RelayInfo, claud
 				common.SysLog("error writing NarraFork quota event: " + err.Error())
 			}
 		}
+		// 接力续写时第二段流会重新发一遍消息开始事件，客户端会因此看到两次消息起始。
+		// 前导事件已经发过就跳过，只转发真正的增量内容。
+		if shouldSuppressClaudeHandoffEvent(info, claudeResponse.Type) {
+			return nil
+		}
 		helper.ClaudeChunkData(c, claudeResponse, data)
+		trackClaudeDeliveredContent(info, &claudeResponse)
 	} else if info.RelayFormat == types.RelayFormatOpenAI {
 		response := StreamResponseClaude2OpenAI(&claudeResponse)
 
@@ -135,8 +149,46 @@ func HandleStreamResponseData(c *gin.Context, info *relaycommon.RelayInfo, claud
 		if err != nil {
 			logger.LogError(c, "send_stream_response_failed: "+err.Error())
 		}
+		trackClaudeDeliveredContent(info, &claudeResponse)
 	}
 	return nil
+}
+
+// claudeStreamPreludeEventTypes 是一次 Claude 消息的前导事件：它们描述"消息开始了"，
+// 在一条 SSE 连接里只应出现一次。接力续写时必须抑制第二段流里的这些事件。
+var claudeStreamPreludeEventTypes = map[string]struct{}{
+	"message_start":       {},
+	"content_block_start": {},
+}
+
+func shouldSuppressClaudeHandoffEvent(info *relaycommon.RelayInfo, eventType string) bool {
+	if info == nil || info.StreamRelay == nil {
+		return false
+	}
+	if !info.StreamRelay.IsPreludeSent() {
+		return false
+	}
+	_, isPrelude := claudeStreamPreludeEventTypes[eventType]
+	return isPrelude
+}
+
+// trackClaudeDeliveredContent 记录已经真实发给客户端的文本增量与前导事件状态，
+// 供跨渠道接力续写时构造 assistant 前缀、并避免重复发送消息起始事件。
+func trackClaudeDeliveredContent(info *relaycommon.RelayInfo, claudeResponse *dto.ClaudeResponse) {
+	if info == nil || info.StreamRelay == nil || claudeResponse == nil {
+		return
+	}
+	if _, isPrelude := claudeStreamPreludeEventTypes[claudeResponse.Type]; isPrelude {
+		info.StreamRelay.MarkPreludeSent()
+		return
+	}
+	if claudeResponse.Type != "content_block_delta" || claudeResponse.Delta == nil {
+		return
+	}
+	// 只累积正文文本；thinking 增量不属于最终回答内容，不能作为续写前缀。
+	if text := claudeResponse.Delta.GetText(); text != "" {
+		info.StreamRelay.AppendDeliveredText(text)
+	}
 }
 
 func countClaudeStreamBillableTools(c *gin.Context, info *relaycommon.RelayInfo, claudeResponse *dto.ClaudeResponse) {
@@ -223,6 +275,14 @@ func ClaudeStreamHandler(c *gin.Context, resp *http.Response, info *relaycommon.
 		}
 	})
 	if err != nil {
+		// 已经吐给客户端的内容必须照实结算：上层失败路径会整笔退还预扣费，
+		// 若不在这里落账，被打断的半个回答就变成完全免费，成本全部由平台承担。
+		// 注意这里不能调用 HandleStreamFinalResponse——它会发送 [DONE] 等结束事件，
+		// 而接力续写还要在同一条连接上继续写，提前收尾会让客户端以为流已结束。
+		if info.GetSendResponseCount() > 0 {
+			ensureClaudeFinalUsage(c, info, claudeInfo)
+			service.PostTextConsumeQuota(c, info, claudeInfo.Usage, nil)
+		}
 		return nil, err
 	}
 

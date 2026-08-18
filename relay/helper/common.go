@@ -137,6 +137,44 @@ func Done(c *gin.Context) {
 	_ = StringData(c, "[DONE]")
 }
 
+// SendStreamErrorAndDone 在响应已经开始写出后，于流内部投递错误并正常收尾。
+// 此时 HTTP 状态码与已发送的 chunk 都无法撤回，改写 JSON 错误体只会污染 SSE 流，
+// 因此按各自协议发送一个错误事件，让客户端能识别到本次生成被中断。
+func SendStreamErrorAndDone(c *gin.Context, relayFormat types.RelayFormat, newAPIError *types.NewAPIError) {
+	if c == nil || newAPIError == nil {
+		return
+	}
+
+	switch relayFormat {
+	case types.RelayFormatClaude:
+		claudeErr := newAPIError.ToClaudeError()
+		payload, err := common.Marshal(gin.H{
+			"type":  "error",
+			"error": claudeErr,
+		})
+		if err != nil {
+			return
+		}
+		c.Render(-1, common.CustomEvent{Data: "event: error\n"})
+		c.Render(-1, common.CustomEvent{Data: "data: " + string(payload)})
+		_ = FlushWriter(c)
+	case types.RelayFormatGemini:
+		// Gemini 原生流不使用 event 名，直接投递一个带 error 字段的数据块。
+		payload, err := common.Marshal(gin.H{"error": newAPIError.ToOpenAIError()})
+		if err != nil {
+			return
+		}
+		_ = StringData(c, string(payload))
+	default:
+		payload, err := common.Marshal(gin.H{"error": newAPIError.ToOpenAIError()})
+		if err != nil {
+			return
+		}
+		_ = StringData(c, string(payload))
+		Done(c)
+	}
+}
+
 func WssString(c *gin.Context, ws *websocket.Conn, str string) error {
 	if ws == nil {
 		logger.LogError(c, "websocket connection is nil")

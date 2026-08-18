@@ -157,6 +157,95 @@ func TestStreamStatus_IsNormalEnd_NilSafe(t *testing.T) {
 	assert.True(t, s.IsNormalEnd())
 }
 
+// 该判据决定被打断的流是否转成错误并触发换渠道重试。
+// 两个方向的误判代价都很高：漏判让残缺回答按成功计费，误判把完整回答当失败重试。
+func TestStreamStatus_IsUpstreamInterrupted(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name                  string
+		reason                StreamEndReason
+		receivedResponseCount int
+		interrupted           bool
+	}{
+		{
+			name:                  "timeout is an upstream interruption",
+			reason:                StreamEndReasonTimeout,
+			receivedResponseCount: 3,
+			interrupted:           true,
+		},
+		{
+			name:                  "scanner error is an upstream interruption",
+			reason:                StreamEndReasonScannerErr,
+			receivedResponseCount: 3,
+			interrupted:           true,
+		},
+		{
+			name:                  "panic is an upstream interruption",
+			reason:                StreamEndReasonPanic,
+			receivedResponseCount: 1,
+			interrupted:           true,
+		},
+		{
+			name:                  "ping failure is an upstream interruption",
+			reason:                StreamEndReasonPingFail,
+			receivedResponseCount: 1,
+			interrupted:           true,
+		},
+		{
+			// 上游连一个数据块都没给就断开，属于异常。
+			name:                  "eof without any data is an upstream interruption",
+			reason:                StreamEndReasonEOF,
+			receivedResponseCount: 0,
+			interrupted:           true,
+		},
+		{
+			// 已收到数据的 EOF 无法区分「正常结束但未发 [DONE]」与「中途断流」，
+			// 为避免把正常请求判成失败，这里保持不视为中断。
+			name:                  "eof after data is not treated as interruption",
+			reason:                StreamEndReasonEOF,
+			receivedResponseCount: 5,
+			interrupted:           false,
+		},
+		{
+			name:                  "done is never an interruption",
+			reason:                StreamEndReasonDone,
+			receivedResponseCount: 5,
+			interrupted:           false,
+		},
+		{
+			// 下游客户端主动断开不是上游故障，重试没有意义。
+			name:                  "client gone is not an upstream interruption",
+			reason:                StreamEndReasonClientGone,
+			receivedResponseCount: 2,
+			interrupted:           false,
+		},
+		{
+			name:                  "handler stop is not an upstream interruption",
+			reason:                StreamEndReasonHandlerStop,
+			receivedResponseCount: 2,
+			interrupted:           false,
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			s := NewStreamStatus()
+			s.SetEndReason(tt.reason, nil)
+			assert.Equal(t, tt.interrupted, s.IsUpstreamInterrupted(tt.receivedResponseCount))
+		})
+	}
+}
+
+func TestStreamStatus_IsUpstreamInterrupted_NilSafe(t *testing.T) {
+	t.Parallel()
+	var s *StreamStatus
+	assert.False(t, s.IsUpstreamInterrupted(0))
+}
+
 func TestStreamStatus_Summary(t *testing.T) {
 	t.Parallel()
 
