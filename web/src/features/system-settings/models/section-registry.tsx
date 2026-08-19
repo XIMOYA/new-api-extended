@@ -248,6 +248,8 @@ const MODELS_SECTIONS = [
           SilentChannelSwitchMessage: settings.SilentChannelSwitchMessage,
           SilentChannelSwitchMaxAttempts:
             settings.SilentChannelSwitchMaxAttempts,
+          StreamHandoffEnabled: settings.StreamHandoffEnabled,
+          StreamHandoffMaxAttempts: settings.StreamHandoffMaxAttempts,
           'monitor_setting.auto_test_channel_enabled':
             settings['monitor_setting.auto_test_channel_enabled'],
           'monitor_setting.auto_test_channel_minutes':

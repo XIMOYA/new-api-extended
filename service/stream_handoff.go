@@ -42,6 +42,12 @@ func CanHandoffStream(info *relaycommon.RelayInfo, newAPIError *types.NewAPIErro
 	if info.StreamRelay.DeliveredTextExceedsLimit() {
 		return false
 	}
+	// 带思考的请求不接力：续写前缀只装得下正文文本，思考上下文无法交给新上游，
+	// 而 Anthropic 是否接受「thinking 已启用时再追加 assistant prefill」尚未确认。
+	// 与其发一个可能被拒的请求并丢掉思考链，不如退回普通失败处理。
+	if info.StreamRelay.HasDeliveredThinking() {
+		return false
+	}
 	if info.StreamRelay.HandoffCount() >= operation_setting.StreamHandoffMaxAttempts {
 		return false
 	}

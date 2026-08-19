@@ -34,6 +34,12 @@ type StreamRelayState struct {
 	// blockOpen 标记当前是否有未收到 content_block_stop 的 block。
 	// 接力前需要据此补发 stop，保证客户端的 block 状态是闭合的。
 	blockOpen bool
+	// thinkingDelivered 标记本条流是否已经把 thinking 内容发给客户端。
+	//
+	// 续写前缀只收集正文文本，thinking 过程无法一并交给新上游；而 Anthropic 对
+	// 「thinking 已启用时还追加 assistant prefill」的接受度尚未确认。带思考的请求
+	// 一旦接力，要么丢掉思考上下文，要么直接被上游拒绝，因此这里记录该状态并禁止接力。
+	thinkingDelivered bool
 	// handoffCount 已发生的接力次数，用于日志与防止无限接力。
 	handoffCount int
 }
@@ -44,7 +50,6 @@ type StreamRelayState struct {
 // 或 max_tokens，生成一个必然被拒绝的请求。超过该阈值就放弃接力，
 // 退回普通失败处理（保留已输出内容并在流内收尾），比发一个注定失败的请求更好。
 const maxDeliveredTextBytes = 32 * 1024
-
 
 func NewStreamRelayState() *StreamRelayState {
 	return &StreamRelayState{}
@@ -164,6 +169,26 @@ func (s *StreamRelayState) DeliveredTextExceedsLimit() bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return s.deliveredText.Len() > maxDeliveredTextBytes
+}
+
+// MarkThinkingDelivered 记录已经有 thinking 内容发给客户端。
+func (s *StreamRelayState) MarkThinkingDelivered() {
+	if s == nil {
+		return
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.thinkingDelivered = true
+}
+
+// HasDeliveredThinking 表示本条流是否已投递过 thinking 内容。
+func (s *StreamRelayState) HasDeliveredThinking() bool {
+	if s == nil {
+		return false
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.thinkingDelivered
 }
 
 // BeginHandoff 记录一次接力并返回累计接力次数。

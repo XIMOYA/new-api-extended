@@ -138,9 +138,6 @@ func Done(c *gin.Context) {
 	_ = StringData(c, "[DONE]")
 }
 
-// SendStreamErrorAndDone 在响应已经开始写出后，于流内部投递错误并正常收尾。
-// 此时 HTTP 状态码与已发送的 chunk 都无法撤回，改写 JSON 错误体只会污染 SSE 流，
-// 因此按各自协议发送一个错误事件，让客户端能识别到本次生成被中断。
 // CloseOpenStreamBlock 在接力续写前补发一个 content_block_stop。
 //
 // 上游中断时通常来不及发 content_block_stop，客户端会认为该 block 仍在进行中。
@@ -168,6 +165,9 @@ func CloseOpenStreamBlock(c *gin.Context, info *relaycommon.RelayInfo) {
 	info.StreamRelay.CloseBlock()
 }
 
+// SendStreamErrorAndDone 在响应已经开始写出后，于流内部投递错误并正常收尾。
+// 此时 HTTP 状态码与已发送的 chunk 都无法撤回，改写 JSON 错误体只会污染 SSE 流，
+// 因此按各自协议发送一个错误事件，让客户端能识别到本次生成被中断。
 func SendStreamErrorAndDone(c *gin.Context, relayFormat types.RelayFormat, newAPIError *types.NewAPIError) {
 	if c == nil || newAPIError == nil {
 		return

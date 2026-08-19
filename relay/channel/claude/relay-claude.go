@@ -212,7 +212,6 @@ func rewriteClaudeHandoffBlockIndex(info *relaycommon.RelayInfo, resp *dto.Claud
 	return patched, true
 }
 
-
 // trackClaudeDeliveredContent 记录已经真实发给客户端的文本增量与前导事件状态，
 // 供跨渠道接力续写时构造 assistant 前缀、并避免重复发送消息起始事件。
 func trackClaudeDeliveredContent(info *relaycommon.RelayInfo, claudeResponse *dto.ClaudeResponse) {
@@ -243,7 +242,12 @@ func trackClaudeDeliveredContent(info *relaycommon.RelayInfo, claudeResponse *dt
 	if claudeResponse.Delta == nil {
 		return
 	}
-	// 只累积正文文本；thinking 增量不属于最终回答内容，不能作为续写前缀。
+	// thinking 增量不属于最终回答内容，不能作为续写前缀；但要记下它出现过，
+	// 带思考的请求不允许接力（前缀无法携带思考上下文）。
+	if claudeResponse.Delta.Thinking != nil && *claudeResponse.Delta.Thinking != "" {
+		info.StreamRelay.MarkThinkingDelivered()
+	}
+	// 只累积正文文本。
 	if text := claudeResponse.Delta.GetText(); text != "" {
 		info.StreamRelay.AppendDeliveredText(text)
 	}
