@@ -389,6 +389,16 @@ func processChannelError(c *gin.Context, channelError types.ChannelError, err *t
 		})
 	}
 
+	// 上游额度耗尽、账号失效这类错误说明这个渠道对当前会话已经没用了，
+	// 继续把会话钉在它上面只会每次都失败，所以直接让亲和缓存失效。
+	// ClearCurrentChannelAffinityCache 同时会解除本次请求的"不重试"标记，
+	// 让 shouldRetry 有机会换渠道——反正缓存都丢了，留着也换不回来。
+	if operation_setting.IsUpstreamExhaustedError(err) {
+		if service.ClearCurrentChannelAffinityCache(c) {
+			logger.LogInfo(c, fmt.Sprintf("渠道 #%d 上游资源耗尽，已清理该会话的渠道亲和缓存", channelError.ChannelId))
+		}
+	}
+
 	if constant.ErrorLogEnabled && types.IsRecordErrorLog(err) {
 		// 保存错误日志到mysql中
 		userId := c.GetInt("id")

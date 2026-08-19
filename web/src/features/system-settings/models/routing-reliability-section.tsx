@@ -404,6 +404,9 @@ export function RoutingReliabilitySection({
                         )}{' '}
                         {t(
                           'A streaming response that already started emitting output can only be interrupted, it cannot be switched silently.'
+                        )}{' '}
+                        {t(
+                          'Channel affinity rules with "Do not retry after failure" enabled keep their requests locked to one channel, so silent switch does not apply to them — adjust that option under Settings - General - Channel Affinity.'
                         )}
                       </FormDescription>
                     </SettingsSwitchContent>

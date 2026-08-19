@@ -465,6 +465,16 @@ export function RuleEditorDialog(props: Props) {
               />
             </div>
 
+            <SettingsSwitchField
+              checked={form.watch('skip_retry_on_failure')}
+              onCheckedChange={(v) => form.setValue('skip_retry_on_failure', v)}
+              label={t('Do not retry after failure')}
+              description={t(
+                'When enabled, requests matching this rule stay locked to the affinity channel: if that channel fails, the error is returned to the user and no other channel is tried. This keeps the upstream prompt cache warm and costs less. When disabled, a failed request may switch to another channel — combined with silent channel switch the user sees no upstream error, but the session moves to a new channel and the upstream cache is lost, so this round costs more. Note: this option takes precedence over silent channel switch, except when the upstream reports quota exhaustion or an invalid account, in which case the affinity entry is dropped and a switch is allowed anyway.'
+              )}
+              className='py-0'
+            />
+
             <div className='grid gap-3 sm:grid-cols-3'>
               <SettingsSwitchField
                 checked={form.watch('include_using_group')}

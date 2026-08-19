@@ -69,6 +69,31 @@ func TestShouldRetryKeepsLocalQuotaErrorTerminal(t *testing.T) {
 	assert.False(t, shouldRetry(context, userQuota, 3), "本站额度不足不该被当成渠道故障重试")
 }
 
+// 与 service 包内的 ginKeyChannelAffinitySkipRetry 保持一致，
+// 这里直接写字面量是为了在 controller 包里复现"亲和已锁定不重试"的现场。
+const affinitySkipRetryGinKey = "channel_affinity_skip_retry_on_failure"
+
+func TestShouldRetryBlockedByChannelAffinitySkipRetry(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	context, _ := gin.CreateTestContext(httptest.NewRecorder())
+	context.Request = httptest.NewRequest(http.MethodPost, "/v1/messages", nil)
+	withSilentSwitch(t, true)
+
+	quotaError := types.NewOpenAIError(
+		errors.New("You exceeded your current quota"),
+		types.ErrorCodeBadResponseStatusCode,
+		http.StatusBadRequest,
+	)
+
+	// 亲和规则开着"失败后不重试"：即使静默切换开着也不换渠道，错误直接回给用户。
+	context.Set(affinitySkipRetryGinKey, true)
+	require.False(t, shouldRetry(context, quotaError, 3), "亲和锁定优先于静默切换")
+
+	// 上游资源耗尽时 processChannelError 会清掉亲和缓存并解除锁定，此时必须恢复换渠道。
+	context.Set(affinitySkipRetryGinKey, false)
+	assert.True(t, shouldRetry(context, quotaError, 3))
+}
+
 func TestRespondTaskErrorHidesUpstreamMessage(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	withSilentSwitch(t, true)

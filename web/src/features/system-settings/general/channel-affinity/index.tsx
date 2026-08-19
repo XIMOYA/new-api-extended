@@ -592,6 +592,15 @@ export function ChannelAffinitySection(props: Props) {
                     }
                     variant={rule.skip_retry_on_failure ? 'danger' : 'neutral'}
                     copyable={false}
+                    title={
+                      rule.skip_retry_on_failure
+                        ? t(
+                            'Locked to the affinity channel: when it fails the error goes straight to the user and silent channel switch does not apply to this rule.'
+                          )
+                        : t(
+                            'A failed affinity channel may be replaced by another channel; the upstream prompt cache is lost when that happens.'
+                          )
+                    }
                   />
                 ),
               },
