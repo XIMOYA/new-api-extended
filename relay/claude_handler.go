@@ -36,6 +36,12 @@ func ClaudeHelper(c *gin.Context, info *relaycommon.RelayInfo) (newAPIError *typ
 		return types.NewError(fmt.Errorf("failed to copy request to ClaudeRequest: %w", err), types.ErrorCodeInvalidRequest, types.ErrOptionWithSkipRetry())
 	}
 
+	// 流式接力续写：上一个渠道已经吐出的内容作为 assistant 前缀，让本次请求从断点继续，
+	// 而不是让客户端在同一条 SSE 流里看到重复的开头。
+	if service.ApplyStreamHandoffPrefix(info, request) {
+		logger.LogInfo(c, fmt.Sprintf("stream handoff: continuing generation with %d chars of delivered content as assistant prefix", len(info.StreamRelay.DeliveredText())))
+	}
+
 	err = helper.ModelMappedHelper(c, info, request)
 	if err != nil {
 		return types.NewError(err, types.ErrorCodeChannelModelMappedError, types.ErrOptionWithSkipRetry())

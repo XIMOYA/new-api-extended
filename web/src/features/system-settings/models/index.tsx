@@ -153,6 +153,9 @@ const defaultModelSettings: ModelSettings = {
   SilentChannelSwitchEnabled: false,
   SilentChannelSwitchMessage: '',
   SilentChannelSwitchMaxAttempts: 0,
+  // 流式接力续写：默认关闭，开启后会重复计费已输出内容的 prompt token。
+  StreamHandoffEnabled: false,
+  StreamHandoffMaxAttempts: 2,
   'monitor_setting.auto_test_channel_enabled': false,
   'monitor_setting.auto_test_channel_minutes': 10,
   'monitor_setting.channel_test_mode': 'scheduled_all',

@@ -94,6 +94,30 @@ func (s *StreamStatus) IsNormalEnd() bool {
 		s.EndReason == StreamEndReasonHandlerStop
 }
 
+// IsUpstreamInterrupted 判断流是否被上游侧异常打断，而不是正常收尾。
+//
+// 判据要精准，误判两个方向的代价都很高：漏判会让被截断的回答按成功计费，
+// 误判会把本已完整的回答当成失败并触发重试。
+//   - client_gone 是下游客户端主动断开，不属于上游故障，必须排除；
+//   - EOF 需要结合是否收到过数据来判断：完全没收到任何 chunk 说明上游直接断开，
+//     属于异常；已经收到过 chunk 的 EOF 无法区分「上游正常结束但未发 [DONE]」
+//     与「中途断流」，为避免误判正常请求，这里不视为中断。
+//
+// receivedResponseCount 传入本次已从上游接收到的数据块数量。
+func (s *StreamStatus) IsUpstreamInterrupted(receivedResponseCount int) bool {
+	if s == nil {
+		return false
+	}
+	switch s.EndReason {
+	case StreamEndReasonTimeout, StreamEndReasonScannerErr, StreamEndReasonPanic, StreamEndReasonPingFail:
+		return true
+	case StreamEndReasonEOF:
+		return receivedResponseCount == 0
+	default:
+		return false
+	}
+}
+
 func (s *StreamStatus) Summary() string {
 	if s == nil {
 		return "StreamStatus<nil>"

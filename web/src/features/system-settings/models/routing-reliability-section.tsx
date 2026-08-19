@@ -72,6 +72,11 @@ type ChannelTestMode = (typeof channelTestModes)[number]
 const SILENT_SWITCH_MAX_ATTEMPTS = 32
 const silentSwitchAttemptsMessage = 'Enter a whole number between 0 and 32'
 
+// 接力每次都要把已输出内容重新作为 prompt 发给新上游，成本随次数线性上升，
+// 断点越多回答连贯性越差，所以上限压得比换渠道次数小得多。
+const STREAM_HANDOFF_MAX_ATTEMPTS = 5
+const streamHandoffAttemptsMessage = 'Enter a whole number between 1 and 5'
+
 const routingReliabilitySchema = z
   .object({
     RetryTimes: z.coerce.number().min(0).max(10),
@@ -88,6 +93,12 @@ const routingReliabilitySchema = z
       .int(silentSwitchAttemptsMessage)
       .min(0, silentSwitchAttemptsMessage)
       .max(SILENT_SWITCH_MAX_ATTEMPTS, silentSwitchAttemptsMessage),
+    StreamHandoffEnabled: z.boolean(),
+    StreamHandoffMaxAttempts: z.coerce
+      .number()
+      .int(streamHandoffAttemptsMessage)
+      .min(1, streamHandoffAttemptsMessage)
+      .max(STREAM_HANDOFF_MAX_ATTEMPTS, streamHandoffAttemptsMessage),
     monitor_setting: z.object({
       auto_test_channel_enabled: z.boolean(),
       auto_test_channel_minutes: z.coerce
@@ -140,6 +151,8 @@ type RoutingReliabilitySectionProps = {
     SilentChannelSwitchEnabled: boolean
     SilentChannelSwitchMessage: string
     SilentChannelSwitchMaxAttempts: number
+    StreamHandoffEnabled: boolean
+    StreamHandoffMaxAttempts: number
     'monitor_setting.auto_test_channel_enabled': boolean
     'monitor_setting.auto_test_channel_minutes': number
     'monitor_setting.channel_test_mode': ChannelTestMode
@@ -161,6 +174,8 @@ type NormalizedRoutingReliabilityValues = {
   SilentChannelSwitchEnabled: boolean
   SilentChannelSwitchMessage: string
   SilentChannelSwitchMaxAttempts: number
+  StreamHandoffEnabled: boolean
+  StreamHandoffMaxAttempts: number
   'monitor_setting.auto_test_channel_enabled': boolean
   'monitor_setting.auto_test_channel_minutes': number
   'monitor_setting.channel_test_mode': ChannelTestMode
@@ -185,6 +200,8 @@ const buildFormDefaults = (
   SilentChannelSwitchEnabled: defaults.SilentChannelSwitchEnabled,
   SilentChannelSwitchMessage: defaults.SilentChannelSwitchMessage ?? '',
   SilentChannelSwitchMaxAttempts: defaults.SilentChannelSwitchMaxAttempts ?? 0,
+  StreamHandoffEnabled: defaults.StreamHandoffEnabled,
+  StreamHandoffMaxAttempts: defaults.StreamHandoffMaxAttempts ?? 2,
   monitor_setting: {
     auto_test_channel_enabled:
       defaults['monitor_setting.auto_test_channel_enabled'],
@@ -217,6 +234,8 @@ const normalizeDefaults = (
     defaults.SilentChannelSwitchMessage ?? ''
   ).trim(),
   SilentChannelSwitchMaxAttempts: defaults.SilentChannelSwitchMaxAttempts ?? 0,
+  StreamHandoffEnabled: defaults.StreamHandoffEnabled,
+  StreamHandoffMaxAttempts: defaults.StreamHandoffMaxAttempts ?? 2,
   'monitor_setting.auto_test_channel_enabled':
     defaults['monitor_setting.auto_test_channel_enabled'],
   'monitor_setting.auto_test_channel_minutes':
@@ -245,6 +264,8 @@ const normalizeFormValues = (
   SilentChannelSwitchEnabled: values.SilentChannelSwitchEnabled,
   SilentChannelSwitchMessage: values.SilentChannelSwitchMessage.trim(),
   SilentChannelSwitchMaxAttempts: values.SilentChannelSwitchMaxAttempts,
+  StreamHandoffEnabled: values.StreamHandoffEnabled,
+  StreamHandoffMaxAttempts: values.StreamHandoffMaxAttempts,
   'monitor_setting.auto_test_channel_enabled':
     values.monitor_setting.auto_test_channel_enabled,
   'monitor_setting.auto_test_channel_minutes':
@@ -282,6 +303,7 @@ export function RoutingReliabilitySection({
   const channelTestMode = form.watch('monitor_setting.channel_test_mode')
   // 关闭静默切换时只置灰下面两个字段，已保存的值保持不动，重新打开即可继续用。
   const silentSwitchEnabled = form.watch('SilentChannelSwitchEnabled')
+  const streamHandoffEnabled = form.watch('StreamHandoffEnabled')
   const autoDisableParsed = useMemo(
     () => parseHttpStatusCodeRules(autoDisableStatusCodes),
     [autoDisableStatusCodes]
@@ -464,6 +486,61 @@ export function RoutingReliabilitySection({
                     </FormControl>
                     <FormDescription>
                       {t('0 follows the retry times limit, maximum 32')}
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name='StreamHandoffEnabled'
+                render={({ field }) => (
+                  <SettingsSwitchItem>
+                    <SettingsSwitchContent>
+                      <FormLabel>{t('Stream handoff')}</FormLabel>
+                      <FormDescription>
+                        {t(
+                          'When the upstream fails after the stream already started emitting text, let the next channel continue writing on the same connection instead of returning an error.'
+                        )}{' '}
+                        {t(
+                          'The text already delivered is resent as an assistant prefix, so those prompt tokens are billed again on the new channel.'
+                        )}{' '}
+                        {t(
+                          'Wording or formatting may shift at the handoff point, and requests that already emitted thinking content are never handed off.'
+                        )}
+                      </FormDescription>
+                    </SettingsSwitchContent>
+                    <FormControl>
+                      <Switch
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                  </SettingsSwitchItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name='StreamHandoffMaxAttempts'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('Max handoffs per request')}</FormLabel>
+                    <FormControl>
+                      <Input
+                        type='number'
+                        min={1}
+                        max={STREAM_HANDOFF_MAX_ATTEMPTS}
+                        step={1}
+                        {...safeNumberFieldProps(field)}
+                        disabled={!streamHandoffEnabled}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      {t(
+                        'Each handoff resends the delivered text, so cost grows with every attempt; maximum 5'
+                      )}
                     </FormDescription>
                     <FormMessage />
                   </FormItem>

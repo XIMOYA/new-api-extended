@@ -126,6 +126,8 @@ const baseDefaults = {
   SilentChannelSwitchEnabled: true,
   SilentChannelSwitchMessage: '上游忙，稍后再来',
   SilentChannelSwitchMaxAttempts: 8,
+  StreamHandoffEnabled: false,
+  StreamHandoffMaxAttempts: 2,
   'monitor_setting.auto_test_channel_enabled': false,
   'monitor_setting.auto_test_channel_minutes': 10,
   'monitor_setting.channel_test_mode': 'scheduled_all' as const,

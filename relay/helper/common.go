@@ -7,6 +7,7 @@ import (
 
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/logger"
+	relaycommon "github.com/QuantumNous/new-api/relay/common"
 	"github.com/QuantumNous/new-api/relaykit/dto"
 	"github.com/QuantumNous/new-api/relaykit/types"
 
@@ -135,6 +136,71 @@ func ObjectData(c *gin.Context, object interface{}) error {
 
 func Done(c *gin.Context) {
 	_ = StringData(c, "[DONE]")
+}
+
+// CloseOpenStreamBlock 在接力续写前补发一个 content_block_stop。
+//
+// 上游中断时通常来不及发 content_block_stop，客户端会认为该 block 仍在进行中。
+// 接力后第二段会用偏移后的 index 开一个新 block，若不先闭合旧 block，
+// 客户端就会同时持有两个"进行中"的 block。仅 Claude 原生流式需要处理：
+// OpenAI 的 chat completions 流没有 block 概念。
+func CloseOpenStreamBlock(c *gin.Context, info *relaycommon.RelayInfo) {
+	if c == nil || info == nil || info.StreamRelay == nil {
+		return
+	}
+	if info.RelayFormat != types.RelayFormatClaude {
+		return
+	}
+	if !info.StreamRelay.HasOpenBlock() {
+		return
+	}
+	index := info.StreamRelay.MaxBlockIndex()
+	payload, err := common.Marshal(gin.H{"type": "content_block_stop", "index": index})
+	if err != nil {
+		return
+	}
+	c.Render(-1, common.CustomEvent{Data: "event: content_block_stop\n"})
+	c.Render(-1, common.CustomEvent{Data: "data: " + string(payload) + "\n"})
+	_ = FlushWriter(c)
+	info.StreamRelay.CloseBlock()
+}
+
+// SendStreamErrorAndDone 在响应已经开始写出后，于流内部投递错误并正常收尾。
+// 此时 HTTP 状态码与已发送的 chunk 都无法撤回，改写 JSON 错误体只会污染 SSE 流，
+// 因此按各自协议发送一个错误事件，让客户端能识别到本次生成被中断。
+func SendStreamErrorAndDone(c *gin.Context, relayFormat types.RelayFormat, newAPIError *types.NewAPIError) {
+	if c == nil || newAPIError == nil {
+		return
+	}
+
+	switch relayFormat {
+	case types.RelayFormatClaude:
+		claudeErr := newAPIError.ToClaudeError()
+		payload, err := common.Marshal(gin.H{
+			"type":  "error",
+			"error": claudeErr,
+		})
+		if err != nil {
+			return
+		}
+		c.Render(-1, common.CustomEvent{Data: "event: error\n"})
+		c.Render(-1, common.CustomEvent{Data: "data: " + string(payload)})
+		_ = FlushWriter(c)
+	case types.RelayFormatGemini:
+		// Gemini 原生流不使用 event 名，直接投递一个带 error 字段的数据块。
+		payload, err := common.Marshal(gin.H{"error": newAPIError.ToOpenAIError()})
+		if err != nil {
+			return
+		}
+		_ = StringData(c, string(payload))
+	default:
+		payload, err := common.Marshal(gin.H{"error": newAPIError.ToOpenAIError()})
+		if err != nil {
+			return
+		}
+		_ = StringData(c, string(payload))
+		Done(c)
+	}
 }
 
 func WssString(c *gin.Context, ws *websocket.Conn, str string) error {

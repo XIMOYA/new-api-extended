@@ -52,10 +52,10 @@ func TestShouldRetryForcesSwitchOnUpstreamQuotaWith400(t *testing.T) {
 	)
 
 	withSilentSwitch(t, false)
-	assert.False(t, shouldRetry(context, quotaError, 3), "开关关闭时保持原有的 400 不重试")
+	assert.False(t, shouldRetry(context, nil, quotaError, 3), "开关关闭时保持原有的 400 不重试")
 
 	withSilentSwitch(t, true)
-	assert.True(t, shouldRetry(context, quotaError, 3))
+	assert.True(t, shouldRetry(context, nil, quotaError, 3))
 }
 
 func TestShouldRetryKeepsLocalQuotaErrorTerminal(t *testing.T) {
@@ -66,7 +66,7 @@ func TestShouldRetryKeepsLocalQuotaErrorTerminal(t *testing.T) {
 
 	userQuota := types.NewError(errors.New("用户额度不足"), types.ErrorCodeInsufficientUserQuota,
 		types.ErrOptionWithStatusCode(http.StatusBadRequest))
-	assert.False(t, shouldRetry(context, userQuota, 3), "本站额度不足不该被当成渠道故障重试")
+	assert.False(t, shouldRetry(context, nil, userQuota, 3), "本站额度不足不该被当成渠道故障重试")
 }
 
 // 与 service 包内的 ginKeyChannelAffinitySkipRetry 保持一致，
@@ -87,11 +87,11 @@ func TestShouldRetryBlockedByChannelAffinitySkipRetry(t *testing.T) {
 
 	// 亲和规则开着"失败后不重试"：即使静默切换开着也不换渠道，错误直接回给用户。
 	context.Set(affinitySkipRetryGinKey, true)
-	require.False(t, shouldRetry(context, quotaError, 3), "亲和锁定优先于静默切换")
+	require.False(t, shouldRetry(context, nil, quotaError, 3), "亲和锁定优先于静默切换")
 
 	// 上游资源耗尽时 processChannelError 会清掉亲和缓存并解除锁定，此时必须恢复换渠道。
 	context.Set(affinitySkipRetryGinKey, false)
-	assert.True(t, shouldRetry(context, quotaError, 3))
+	assert.True(t, shouldRetry(context, nil, quotaError, 3))
 }
 
 func TestRespondTaskErrorHidesUpstreamMessage(t *testing.T) {

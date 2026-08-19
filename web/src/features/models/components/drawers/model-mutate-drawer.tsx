@@ -411,6 +411,8 @@ export function ModelMutateDrawer({
       SilentChannelSwitchEnabled: false,
       SilentChannelSwitchMessage: '',
       SilentChannelSwitchMaxAttempts: 0,
+      StreamHandoffEnabled: false,
+      StreamHandoffMaxAttempts: 2,
       'monitor_setting.auto_test_channel_enabled': false,
       'monitor_setting.auto_test_channel_minutes': 10,
       'monitor_setting.channel_test_mode': 'scheduled_all',

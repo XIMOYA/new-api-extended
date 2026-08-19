@@ -105,7 +105,7 @@ func getChannelQuery(group string, model string, retry int) (*gorm.DB, error) {
 	return channelQuery, nil
 }
 
-func GetChannel(group string, model string, retry int, requestPath string) (*Channel, error) {
+func GetChannel(group string, model string, retry int, requestPath string, excludeChannelIds ...int) (*Channel, error) {
 	var abilities []Ability
 
 	var err error = nil
@@ -122,6 +122,8 @@ func GetChannel(group string, model string, retry int, requestPath string) (*Cha
 		return nil, err
 	}
 	abilities = filterAbilitiesByRequestPathAndModel(abilities, requestPath, model)
+	// 与内存缓存路径保持一致：剔除本次请求内已失败的渠道，剔除后为空则回退全量候选。
+	abilities = excludeChannelIdsFromAbilities(abilities, excludeChannelIds)
 	channel := Channel{}
 	if len(abilities) > 0 {
 		// Randomly choose one
@@ -144,6 +146,29 @@ func GetChannel(group string, model string, retry int, requestPath string) (*Cha
 	}
 	err = DB.First(&channel, "id = ?", channel.Id).Error
 	return &channel, err
+}
+
+// excludeChannelIdsFromAbilities 是 excludeChannelIdsFromCandidates 在 DB 选择路径上的等价实现，
+// 剔除本次请求内已失败的渠道；剔除后为空时返回原候选，避免请求直接无渠道可用。
+func excludeChannelIdsFromAbilities(abilities []Ability, excludeChannelIds []int) []Ability {
+	if len(abilities) == 0 || len(excludeChannelIds) == 0 {
+		return abilities
+	}
+	excluded := make(map[int]struct{}, len(excludeChannelIds))
+	for _, channelId := range excludeChannelIds {
+		excluded[channelId] = struct{}{}
+	}
+	remaining := make([]Ability, 0, len(abilities))
+	for _, ability := range abilities {
+		if _, skip := excluded[ability.ChannelId]; skip {
+			continue
+		}
+		remaining = append(remaining, ability)
+	}
+	if len(remaining) == 0 {
+		return abilities
+	}
+	return remaining
 }
 
 // filterAbilitiesByRequestPathAndModel restricts candidates by request path and

@@ -111,10 +111,10 @@ func SyncChannelCache(frequency int) {
 	}
 }
 
-func GetRandomSatisfiedChannel(group string, model string, retry int, requestPath string) (*Channel, error) {
+func GetRandomSatisfiedChannel(group string, model string, retry int, requestPath string, excludeChannelIds ...int) (*Channel, error) {
 	// if memory cache is disabled, get channel directly from database
 	if !common.MemoryCacheEnabled {
-		return GetChannel(group, model, retry, requestPath)
+		return GetChannel(group, model, retry, requestPath, excludeChannelIds...)
 	}
 
 	channelSyncLock.RLock()
@@ -132,6 +132,10 @@ func GetRandomSatisfiedChannel(group string, model string, retry int, requestPat
 	if len(channels) == 0 {
 		return nil, nil
 	}
+
+	// 本次请求内已失败的渠道优先排除，避免同优先级随机选择反复命中同一个渠道。
+	// 若排除后无候选，则忽略排除名单回退到全量候选，保证不会把本可成功的请求打死。
+	channels = excludeChannelIdsFromCandidates(channels, excludeChannelIds)
 
 	if len(channels) == 1 {
 		if channel, ok := channelsIDM[channels[0]]; ok {
@@ -206,6 +210,30 @@ func GetRandomSatisfiedChannel(group string, model string, retry int, requestPat
 	}
 	// return null if no channel is not found
 	return nil, errors.New("channel not found")
+}
+
+// excludeChannelIdsFromCandidates 剔除本次请求内已失败的渠道。
+// 渠道选择在同优先级内是按权重随机的，重试时若不剔除就可能反复命中刚失败的渠道。
+// 当剔除后候选为空时返回原候选，宁可重试同一渠道也不要让请求直接无渠道可用。
+func excludeChannelIdsFromCandidates(channels []int, excludeChannelIds []int) []int {
+	if len(channels) == 0 || len(excludeChannelIds) == 0 {
+		return channels
+	}
+	excluded := make(map[int]struct{}, len(excludeChannelIds))
+	for _, channelId := range excludeChannelIds {
+		excluded[channelId] = struct{}{}
+	}
+	remaining := make([]int, 0, len(channels))
+	for _, channelId := range channels {
+		if _, skip := excluded[channelId]; skip {
+			continue
+		}
+		remaining = append(remaining, channelId)
+	}
+	if len(remaining) == 0 {
+		return channels
+	}
+	return remaining
 }
 
 // filterChannelsByRequestPathAndModel restricts candidates by request path and

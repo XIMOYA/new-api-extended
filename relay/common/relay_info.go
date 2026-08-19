@@ -174,6 +174,11 @@ type RelayInfo struct {
 
 	StreamStatus *StreamStatus
 
+	// StreamRelay 记录跨渠道流式接力续写的状态。
+	// 上游在流中途失败（典型是余额耗尽）时，SSE 的状态码与已发内容都无法撤回，
+	// 只能让下一个渠道在同一条连接里接着写，因此需要跨重试保留已输出内容与前导事件状态。
+	StreamRelay *StreamRelayState
+
 	// convOptions caches the converter settings snapshot (see ConvOptions).
 	convOptions *convmeta.Options
 
@@ -610,6 +615,12 @@ func GenRelayInfo(c *gin.Context, relayFormat types.RelayFormat, request dto.Req
 	}
 
 	info.InitRequestConversionChain()
+
+	// 流式请求预备接力状态：一旦上游在流中途失败，需要靠它记住已经发给客户端的内容，
+	// 才能让接替的渠道在同一条 SSE 连接里从断点继续。
+	if info.IsStream {
+		info.StreamRelay = NewStreamRelayState()
+	}
 	return info, nil
 }
 
@@ -782,6 +793,23 @@ func (info *RelayInfo) IncrSendResponseCount() {
 		return
 	}
 	info.SendResponseCount++
+}
+
+// HasSentToClient 判断本次请求是否已经有响应字节发给客户端。
+//
+// 不能只看 SendResponseCount：它仅在跨格式转换的流式路径里递增
+// （见 relayconvert.prepareResponseStreamInfo 的 From/To 前置条件），
+// 原生同格式透传（Claude→Claude、OpenAI→OpenAI）走 helper.ClaudeChunkData
+// 等直接写出的函数，该计数恒为 0。
+//
+// c.Writer.Written() 才是与格式无关的权威信号——它反映响应头/正文是否真的写出。
+// 一旦写出，状态码与已发字节都无法撤回，此时既不能整轮重发（会拼接出两段流），
+// 也不能把已输出内容当作没发生（必须照实计费）。
+func (info *RelayInfo) HasSentToClient(c *gin.Context) bool {
+	if info != nil && info.SendResponseCount > 0 {
+		return true
+	}
+	return c != nil && c.Writer != nil && c.Writer.Written()
 }
 
 // ConvOptions snapshots host settings for the converters. Rebuilt on each

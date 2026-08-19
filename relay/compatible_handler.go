@@ -35,6 +35,11 @@ func TextHelper(c *gin.Context, info *relaycommon.RelayInfo) (newAPIError *types
 		return types.NewError(fmt.Errorf("failed to copy request to GeneralOpenAIRequest: %w", err), types.ErrorCodeInvalidRequest, types.ErrOptionWithSkipRetry())
 	}
 
+	// 流式接力续写：把上一个渠道已经发给客户端的内容作为 assistant 前缀，从断点继续生成。
+	if service.ApplyStreamHandoffPrefix(info, request) {
+		logger.LogInfo(c, fmt.Sprintf("stream handoff: continuing generation with %d chars of delivered content as assistant prefix", len(info.StreamRelay.DeliveredText())))
+	}
+
 	if request.WebSearchOptions != nil {
 		c.Set("chat_completion_web_search_context_size", request.WebSearchOptions.SearchContextSize)
 	}

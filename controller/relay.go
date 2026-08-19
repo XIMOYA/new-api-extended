@@ -98,6 +98,12 @@ func Relay(c *gin.Context, relayFormat types.RelayFormat) {
 				newAPIError.SetMessage(operation_setting.SilentChannelSwitchMessageOrDefault())
 			}
 			newAPIError.SetMessage(common.MessageWithRequestId(newAPIError.Error(), requestId))
+			// 响应已经开始写出时不能再写 JSON 错误体：状态码早已发出，追加的 JSON 会被拼到 SSE 流尾部，
+			// 破坏客户端解析。此时只能在流内以错误事件收尾。
+			if c.Writer.Written() && relayFormat != types.RelayFormatOpenAIRealtime {
+				helper.SendStreamErrorAndDone(c, relayFormat, newAPIError)
+				return
+			}
 			switch relayFormat {
 			case types.RelayFormatOpenAIRealtime:
 				helper.WssError(c, ws, newAPIError.ToOpenAIError())
@@ -252,7 +258,10 @@ func Relay(c *gin.Context, relayFormat types.RelayFormat) {
 
 		processChannelError(c, *types.NewChannelError(channel.Id, channel.Type, channel.Name, channel.ChannelInfo.IsMultiKey, common.GetContextKeyString(c, constant.ContextKeyChannelKey), channel.GetAutoBan()), newAPIError)
 
-		if !shouldRetry(c, newAPIError, maxAttempts-retryParam.GetRetry()-1) {
+		// 本渠道已失败，后续重试避开它。渠道禁用是异步的，仅靠禁用无法保证同请求内不再被选中。
+		retryParam.ExcludeChannel(channel.Id)
+
+		if !shouldRetry(c, relayInfo, newAPIError, maxAttempts-retryParam.GetRetry()-1) {
 			break
 		}
 	}
@@ -342,10 +351,29 @@ func getChannel(c *gin.Context, info *relaycommon.RelayInfo, retryParam *service
 	return channel, nil
 }
 
-func shouldRetry(c *gin.Context, openaiErr *types.NewAPIError, retryTimes int) bool {
+func shouldRetry(c *gin.Context, info *relaycommon.RelayInfo, openaiErr *types.NewAPIError, retryTimes int) bool {
 	if openaiErr == nil {
 		return false
 	}
+	// 已经有响应内容写给客户端时不能再裸重试：SSE 的 200 响应头与已发出的 chunk 无法撤回，
+	// 换渠道重发会让客户端收到两段拼接的流（重复 message_start/[DONE]），甚至在流后追加 JSON 错误体。
+	// 判据用 HasSentToClient 而非 SendResponseCount：后者只在跨格式转换路径递增，
+	// 原生同格式透传恒为 0，只看它会漏掉最常见的 Claude→Claude / OpenAI→OpenAI 流式。
+	// 仅当能够走流式接力续写（在同一条连接里让新渠道接着写）时才允许继续。
+	if info.HasSentToClient(c) {
+		if !service.CanHandoffStream(info, openaiErr) {
+			logger.LogWarn(c, fmt.Sprintf("skip retry: response already sent to client (chunks=%d), cannot restart the stream", info.GetSendResponseCount()))
+			return false
+		}
+		// 第一段中断时 content block 往往没收到 stop，先补一个让客户端的 block 状态闭合，
+		// 第二段再从偏移后的 index 开一个新 block，符合 Messages API 的事件契约。
+		helper.CloseOpenStreamBlock(c, info)
+		handoff := info.StreamRelay.BeginHandoff()
+		logger.LogWarn(c, fmt.Sprintf("stream handoff #%d: continuing the same SSE stream on another channel", handoff))
+		return true
+	}
+	// 这一分支特意排在渠道亲和检查之前：内容已经在向用户吐字了，
+	// 把回答救回来比保住 prompt 缓存的亲和性更重要，因此接力优先于亲和的「失败后不重试」。
 	if service.ShouldSkipRetryAfterChannelAffinityFailure(c) {
 		return false
 	}
@@ -363,6 +391,8 @@ func shouldRetry(c *gin.Context, openaiErr *types.NewAPIError, retryTimes int) b
 	}
 	// 上游自己欠费或被封禁时，有些供应商回的是 400 这类默认不重试的状态码，
 	// 静默切换下必须继续换渠道，否则第一个欠费渠道就把请求打回给用户了。
+	// 判定复用 operation_setting.IsUpstreamExhaustedError（与渠道自动禁用同一套特征），
+	// 不再单独维护一份关键词表。
 	if operation_setting.SilentChannelSwitchEnabled && operation_setting.IsUpstreamExhaustedError(openaiErr) {
 		return true
 	}
@@ -594,6 +624,11 @@ func RelayTask(c *gin.Context) {
 				*types.NewChannelError(channel.Id, channel.Type, channel.Name, channel.ChannelInfo.IsMultiKey,
 					common.GetContextKeyString(c, constant.ContextKeyChannelKey), channel.GetAutoBan()),
 				types.NewOpenAIError(taskErr.Error, types.ErrorCodeBadResponseStatusCode, taskErr.StatusCode))
+		}
+
+		// 锁定渠道的任务不参与渠道选择，无需（也不能）避让；其余情况避开刚失败的渠道。
+		if lockedCh, ok := relayInfo.LockedChannel.(*model.Channel); !ok || lockedCh == nil {
+			retryParam.ExcludeChannel(channel.Id)
 		}
 
 		if !shouldRetryTaskRelay(c, channel.Id, taskErr, taskMaxAttempts-retryParam.GetRetry()-1) {

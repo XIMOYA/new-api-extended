@@ -59,6 +59,10 @@ const (
 	ErrorCodeChannelAwsClientError        ErrorCode = "channel:aws_client_error"
 	ErrorCodeChannelInvalidKey            ErrorCode = "channel:invalid_key"
 	ErrorCodeChannelResponseTimeExceeded  ErrorCode = "channel:response_time_exceeded"
+	// 上游渠道自身余额/额度耗尽。归入 channel: 前缀，使其天然满足 IsChannelError：
+	// 既能绕过状态码重试区间（Anthropic 余额耗尽返回 400，不在默认重试区间内），
+	// 也能触发渠道自动禁用，避免后续请求继续撞空渠道。
+	ErrorCodeChannelUpstreamQuotaExhausted ErrorCode = "channel:upstream_quota_exhausted"
 
 	// client request error
 	ErrorCodeReadRequestBodyFailed ErrorCode = "read_request_body_failed"
@@ -175,6 +179,16 @@ func (e *NewAPIError) MaskSensitiveErrorWithStatusCode() string {
 
 func (e *NewAPIError) SetMessage(message string) {
 	e.Err = errors.New(message)
+}
+
+// SetErrorCode 改写已构造错误的 errorCode。用于上游响应解析完成后的事后归类，
+// 例如把上游返回的余额耗尽错误重新标记为 channel: 前缀，从而进入渠道错误处理链路。
+// 保留 StatusCode 与原始 message 不变，便于日志与最终兜底响应仍呈现上游原文。
+func (e *NewAPIError) SetErrorCode(code ErrorCode) {
+	if e == nil {
+		return
+	}
+	e.errorCode = code
 }
 
 func (e *NewAPIError) ToOpenAIError() OpenAIError {
