@@ -3,6 +3,7 @@ package controller
 import (
 	"errors"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	relaycommon "github.com/QuantumNous/new-api/relay/common"
@@ -119,4 +120,85 @@ func TestShouldRetryStopsAfterResponseSentToClient(t *testing.T) {
 			require.Equal(t, tc.expected, shouldRetry(c, info, newAPIError, 3))
 		})
 	}
+}
+
+// 原生同格式流式（Claude→Claude、OpenAI→OpenAI）不经过格式转换，
+// SendResponseCount 恒为 0，只能靠 Writer.Written() 识别「已经发出去了」。
+// 这是最常见的流式形态，必须和跨格式路径一样被守卫拦住。
+func TestShouldRetryStopsWhenWriterAlreadyWrittenWithoutConvertCount(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	testCases := []struct {
+		name        string
+		relayFormat types.RelayFormat
+		errorCode   types.ErrorCode
+	}{
+		{
+			name:        "native claude stream blocks quota exhausted retry",
+			relayFormat: types.RelayFormatClaude,
+			errorCode:   types.ErrorCodeChannelUpstreamQuotaExhausted,
+		},
+		{
+			name:        "native openai stream blocks quota exhausted retry",
+			relayFormat: types.RelayFormatOpenAI,
+			errorCode:   types.ErrorCodeChannelUpstreamQuotaExhausted,
+		},
+		{
+			name:        "native claude stream blocks retryable status code",
+			relayFormat: types.RelayFormatClaude,
+			errorCode:   types.ErrorCodeBadResponseStatusCode,
+		},
+	}
+
+	for _, tc := range testCases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			recorder := httptest.NewRecorder()
+			c, _ := gin.CreateTestContext(recorder)
+			c.Request = httptest.NewRequest(http.MethodPost, "/v1/messages", nil)
+
+			// 模拟原生透传：SSE 头与首个 chunk 已经写给客户端
+			c.Writer.WriteHeader(http.StatusOK)
+			_, err := c.Writer.Write([]byte("event: message_start\ndata: {}\n\n"))
+			require.NoError(t, err)
+			c.Writer.Flush()
+
+			info := &relaycommon.RelayInfo{
+				IsStream:    true,
+				RelayFormat: tc.relayFormat,
+			}
+			require.Zero(t, info.GetSendResponseCount(), "原生路径不应递增转换计数")
+			require.True(t, info.HasSentToClient(c), "已写出内容应被识别")
+
+			newAPIError := types.NewErrorWithStatusCode(
+				errors.New("Your credit balance is too low"),
+				tc.errorCode,
+				http.StatusBadRequest,
+			)
+
+			// 接力默认关闭，已写出内容后必须停下，不能重发造成拼接流
+			require.False(t, shouldRetry(c, info, newAPIError, 3))
+		})
+	}
+}
+
+// 非流式请求在失败时尚未写出响应体，重试必须照常允许，
+// 否则会把本可成功换渠道的普通请求打死。
+func TestShouldRetryAllowsNonStreamBeforeAnyWrite(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	recorder := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(recorder)
+	c.Request = httptest.NewRequest(http.MethodPost, "/v1/messages", nil)
+
+	info := &relaycommon.RelayInfo{IsStream: false, RelayFormat: types.RelayFormatClaude}
+	require.False(t, info.HasSentToClient(c), "未写出任何内容")
+
+	newAPIError := types.NewErrorWithStatusCode(
+		errors.New("Your credit balance is too low"),
+		types.ErrorCodeChannelUpstreamQuotaExhausted,
+		http.StatusBadRequest,
+	)
+
+	require.True(t, shouldRetry(c, info, newAPIError, 3))
 }

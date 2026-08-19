@@ -203,7 +203,9 @@ func OaiStreamHandler(c *gin.Context, info *relaycommon.RelayInfo, resp *http.Re
 
 		// 已经吐给客户端的内容必须照实结算：上层失败路径会整笔退还预扣费，
 		// 若不在这里落账，被打断的半个回答就变成完全免费，成本全部由平台承担。
-		if info.GetSendResponseCount() > 0 {
+		// 判据用 HasSentToClient：原生 OpenAI→OpenAI 透传不会递增 SendResponseCount，
+		// 只看计数会让最常见的原生流式漏计费。
+		if info.HasSentToClient(c) {
 			service.PostTextConsumeQuota(c, info, usage, nil)
 		}
 		return usage, types.NewOpenAIError(endErr, types.ErrorCodeBadResponse, http.StatusInternalServerError)

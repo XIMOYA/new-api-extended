@@ -795,6 +795,23 @@ func (info *RelayInfo) IncrSendResponseCount() {
 	info.SendResponseCount++
 }
 
+// HasSentToClient 判断本次请求是否已经有响应字节发给客户端。
+//
+// 不能只看 SendResponseCount：它仅在跨格式转换的流式路径里递增
+// （见 relayconvert.prepareResponseStreamInfo 的 From/To 前置条件），
+// 原生同格式透传（Claude→Claude、OpenAI→OpenAI）走 helper.ClaudeChunkData
+// 等直接写出的函数，该计数恒为 0。
+//
+// c.Writer.Written() 才是与格式无关的权威信号——它反映响应头/正文是否真的写出。
+// 一旦写出，状态码与已发字节都无法撤回，此时既不能整轮重发（会拼接出两段流），
+// 也不能把已输出内容当作没发生（必须照实计费）。
+func (info *RelayInfo) HasSentToClient(c *gin.Context) bool {
+	if info != nil && info.SendResponseCount > 0 {
+		return true
+	}
+	return c != nil && c.Writer != nil && c.Writer.Written()
+}
+
 // ConvOptions snapshots host settings for the converters. Rebuilt on each
 // call site's first use; cached so one relay session sees one snapshot.
 func (info *RelayInfo) ConvOptions() *convmeta.Options {

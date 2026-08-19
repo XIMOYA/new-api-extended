@@ -357,14 +357,16 @@ func shouldRetry(c *gin.Context, info *relaycommon.RelayInfo, openaiErr *types.N
 	}
 	// 已经有响应内容写给客户端时不能再裸重试：SSE 的 200 响应头与已发出的 chunk 无法撤回，
 	// 换渠道重发会让客户端收到两段拼接的流（重复 message_start/[DONE]），甚至在流后追加 JSON 错误体。
+	// 判据用 HasSentToClient 而非 SendResponseCount：后者只在跨格式转换路径递增，
+	// 原生同格式透传恒为 0，只看它会漏掉最常见的 Claude→Claude / OpenAI→OpenAI 流式。
 	// 仅当能够走流式接力续写（在同一条连接里让新渠道接着写）时才允许继续。
-	if info != nil && info.GetSendResponseCount() > 0 {
+	if info.HasSentToClient(c) {
 		if !service.CanHandoffStream(info, openaiErr) {
-			logger.LogWarn(c, fmt.Sprintf("skip retry: %d response chunks already sent to client, cannot restart the stream", info.GetSendResponseCount()))
+			logger.LogWarn(c, fmt.Sprintf("skip retry: response already sent to client (chunks=%d), cannot restart the stream", info.GetSendResponseCount()))
 			return false
 		}
 		handoff := info.StreamRelay.BeginHandoff()
-		logger.LogWarn(c, fmt.Sprintf("stream handoff #%d: continuing the same SSE stream on another channel after %d chunks", handoff, info.GetSendResponseCount()))
+		logger.LogWarn(c, fmt.Sprintf("stream handoff #%d: continuing the same SSE stream on another channel", handoff))
 		return true
 	}
 	if service.ShouldSkipRetryAfterChannelAffinityFailure(c) {

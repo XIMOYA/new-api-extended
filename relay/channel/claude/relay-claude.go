@@ -277,9 +277,11 @@ func ClaudeStreamHandler(c *gin.Context, resp *http.Response, info *relaycommon.
 	if err != nil {
 		// 已经吐给客户端的内容必须照实结算：上层失败路径会整笔退还预扣费，
 		// 若不在这里落账，被打断的半个回答就变成完全免费，成本全部由平台承担。
+		// 判据用 HasSentToClient：原生 Claude→Claude 透传不会递增 SendResponseCount，
+		// 只看计数会让最常见的原生流式漏计费。
 		// 注意这里不能调用 HandleStreamFinalResponse——它会发送 [DONE] 等结束事件，
 		// 而接力续写还要在同一条连接上继续写，提前收尾会让客户端以为流已结束。
-		if info.GetSendResponseCount() > 0 {
+		if info.HasSentToClient(c) {
 			ensureClaudeFinalUsage(c, info, claudeInfo)
 			service.PostTextConsumeQuota(c, info, claudeInfo.Usage, nil)
 		}
