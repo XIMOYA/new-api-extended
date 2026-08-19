@@ -390,11 +390,10 @@ func shouldRetry(c *gin.Context, info *relaycommon.RelayInfo, openaiErr *types.N
 		return false
 	}
 	// 上游自己欠费或被封禁时，有些供应商回的是 400 这类默认不重试的状态码，
-	// 必须继续换渠道，否则第一个欠费渠道就把请求打回给用户了。
+	// 静默切换下必须继续换渠道，否则第一个欠费渠道就把请求打回给用户了。
 	// 判定复用 operation_setting.IsUpstreamExhaustedError（与渠道自动禁用同一套特征），
-	// 不再单独维护一份关键词表。这里不要求 SilentChannelSwitchEnabled：
-	// 静默切换决定的是「要不要把上游原文藏起来」，而换渠道本身与是否隐藏无关。
-	if operation_setting.IsUpstreamExhaustedError(openaiErr) {
+	// 不再单独维护一份关键词表。
+	if operation_setting.SilentChannelSwitchEnabled && operation_setting.IsUpstreamExhaustedError(openaiErr) {
 		return true
 	}
 	// 上游自己欠费或被封禁时，有些供应商回的是 400 这类默认不重试的状态码，
