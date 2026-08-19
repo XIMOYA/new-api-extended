@@ -18,6 +18,7 @@ import (
 	"github.com/QuantumNous/new-api/setting/operation_setting"
 
 	"github.com/gin-gonic/gin"
+	"github.com/tidwall/sjson"
 )
 
 func stopReasonClaude2OpenAI(reason string) string {
@@ -129,10 +130,13 @@ func HandleStreamResponseData(c *gin.Context, info *relaycommon.RelayInfo, claud
 				common.SysLog("error writing NarraFork quota event: " + err.Error())
 			}
 		}
-		// 接力续写时第二段流会重新发一遍消息开始事件，客户端会因此看到两次消息起始。
-		// 前导事件已经发过就跳过，只转发真正的增量内容。
+		// 接力续写时第二段流会重新发一遍 message_start，客户端会因此看到两次消息起始。
+		// 只抑制这一个消息级事件；block 级事件靠 index 偏移延续，不能抑制。
 		if shouldSuppressClaudeHandoffEvent(info, claudeResponse.Type) {
 			return nil
+		}
+		if patched, ok := rewriteClaudeHandoffBlockIndex(info, &claudeResponse, data); ok {
+			data = patched
 		}
 		helper.ClaudeChunkData(c, claudeResponse, data)
 		trackClaudeDeliveredContent(info, &claudeResponse)
@@ -154,23 +158,60 @@ func HandleStreamResponseData(c *gin.Context, info *relaycommon.RelayInfo, claud
 	return nil
 }
 
-// claudeStreamPreludeEventTypes 是一次 Claude 消息的前导事件：它们描述"消息开始了"，
-// 在一条 SSE 连接里只应出现一次。接力续写时必须抑制第二段流里的这些事件。
-var claudeStreamPreludeEventTypes = map[string]struct{}{
-	"message_start":       {},
-	"content_block_start": {},
-}
-
+// shouldSuppressClaudeHandoffEvent 判断一个事件是否应在接力续写时被抑制。
+//
+// 只抑制 message_start：它是消息级前导，一条 SSE 连接里只应出现一次。
+// 绝不能把 content_block_start 一并抑制——那是块级事件，一条消息里
+// text / thinking / tool_use 各自都会发一次，抑制它会让所有 Claude 原生流式
+// 请求（哪怕接力从未发生）都收到没有 start 打头的 delta，破坏 Messages API 契约。
+// 第二段流的 block 起始事件靠 index 偏移延续，见 rewriteClaudeHandoffBlockIndex。
 func shouldSuppressClaudeHandoffEvent(info *relaycommon.RelayInfo, eventType string) bool {
 	if info == nil || info.StreamRelay == nil {
 		return false
 	}
-	if !info.StreamRelay.IsPreludeSent() {
+	if eventType != "message_start" {
 		return false
 	}
-	_, isPrelude := claudeStreamPreludeEventTypes[eventType]
-	return isPrelude
+	return info.StreamRelay.IsMessageStarted()
 }
+
+// claudeBlockIndexedEventTypes 是携带 content block index 的事件。
+// 接力后第二段上游重新从 index 0 编号，必须加偏移才能延续第一段的 block 序列。
+var claudeBlockIndexedEventTypes = map[string]struct{}{
+	"content_block_start": {},
+	"content_block_delta": {},
+	"content_block_stop":  {},
+}
+
+// rewriteClaudeHandoffBlockIndex 把上游的 block index 平移到接力后的连续区间。
+//
+// 返回是否改写过 data。第一段流（偏移为 0）不做任何改动，保持零开销。
+func rewriteClaudeHandoffBlockIndex(info *relaycommon.RelayInfo, resp *dto.ClaudeResponse, data string) (string, bool) {
+	if info == nil || info.StreamRelay == nil || resp == nil {
+		return data, false
+	}
+	if _, indexed := claudeBlockIndexedEventTypes[resp.Type]; !indexed {
+		return data, false
+	}
+	offset := info.StreamRelay.BlockIndexOffset()
+	if offset == 0 {
+		return data, false
+	}
+	// Index 是可选字段，缺省时没有可平移的目标。
+	if resp.Index == nil {
+		return data, false
+	}
+
+	shifted := *resp.Index + offset
+	resp.SetIndex(shifted)
+	// data 是要原样透传的上游报文，index 必须同步改写，否则客户端读到的仍是旧值。
+	patched, err := sjson.Set(data, "index", shifted)
+	if err != nil {
+		return data, false
+	}
+	return patched, true
+}
+
 
 // trackClaudeDeliveredContent 记录已经真实发给客户端的文本增量与前导事件状态，
 // 供跨渠道接力续写时构造 assistant 前缀、并避免重复发送消息起始事件。
@@ -178,11 +219,28 @@ func trackClaudeDeliveredContent(info *relaycommon.RelayInfo, claudeResponse *dt
 	if info == nil || info.StreamRelay == nil || claudeResponse == nil {
 		return
 	}
-	if _, isPrelude := claudeStreamPreludeEventTypes[claudeResponse.Type]; isPrelude {
-		info.StreamRelay.MarkPreludeSent()
+	switch claudeResponse.Type {
+	case "message_start":
+		// 消息级前导，接力时第二段要抑制的就是它。
+		info.StreamRelay.MarkMessageStarted()
+		return
+	case "content_block_start":
+		// 记录已转发的 block index（此时已含接力偏移），供接力时计算下一段的起点。
+		if claudeResponse.Index != nil {
+			info.StreamRelay.ObserveBlockIndex(*claudeResponse.Index)
+		}
+		return
+	case "content_block_stop":
+		info.StreamRelay.CloseBlock()
+		return
+	case "content_block_delta":
+		if claudeResponse.Index != nil {
+			info.StreamRelay.ObserveBlockIndex(*claudeResponse.Index)
+		}
+	default:
 		return
 	}
-	if claudeResponse.Type != "content_block_delta" || claudeResponse.Delta == nil {
+	if claudeResponse.Delta == nil {
 		return
 	}
 	// 只累积正文文本；thinking 增量不属于最终回答内容，不能作为续写前缀。

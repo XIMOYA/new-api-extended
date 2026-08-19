@@ -106,7 +106,7 @@ func TestCanHandoffStream(t *testing.T) {
 	t.Run("stops after reaching handoff limit", func(t *testing.T) {
 		withStreamHandoffEnabled(t, true)
 		info := newHandoffReadyInfo()
-		for i := 0; i < maxStreamHandoffs; i++ {
+		for i := 0; i < operation_setting.StreamHandoffMaxAttempts; i++ {
 			require.True(t, CanHandoffStream(info, upstreamQuotaErr))
 			info.StreamRelay.BeginHandoff()
 		}

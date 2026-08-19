@@ -179,6 +179,7 @@ func InitOptionMap() {
 	common.OptionMap["StreamCacheQueueLength"] = strconv.Itoa(setting.StreamCacheQueueLength)
 	common.OptionMap["AutomaticDisableKeywords"] = operation_setting.AutomaticDisableKeywordsToString()
 	common.OptionMap["StreamHandoffEnabled"] = strconv.FormatBool(operation_setting.StreamHandoffEnabled)
+	common.OptionMap["StreamHandoffMaxAttempts"] = strconv.Itoa(operation_setting.StreamHandoffMaxAttempts)
 	common.OptionMap["AutomaticDisableStatusCodes"] = operation_setting.AutomaticDisableStatusCodesToString()
 	common.OptionMap["AutomaticRetryStatusCodes"] = operation_setting.AutomaticRetryStatusCodesToString()
 	common.OptionMap["ExposeRatioEnabled"] = strconv.FormatBool(ratio_setting.IsExposeRatioEnabled())
@@ -567,6 +568,8 @@ func updateOptionMap(key string, value string) (err error) {
 		operation_setting.SilentChannelSwitchMessage = value
 	case "SilentChannelSwitchMaxAttempts":
 		operation_setting.SilentChannelSwitchMaxAttempts, _ = strconv.Atoi(value)
+	case "StreamHandoffMaxAttempts":
+		operation_setting.StreamHandoffMaxAttempts, _ = strconv.Atoi(value)
 	case "DataExportInterval":
 		common.DataExportInterval, _ = strconv.Atoi(value)
 	case "DataExportDefaultTime":

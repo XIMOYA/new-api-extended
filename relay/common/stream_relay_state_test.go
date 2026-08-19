@@ -19,7 +19,7 @@ func TestStreamRelayState_ConcurrentAppendIsSafe(t *testing.T) {
 			defer wg.Done()
 			s.AppendDeliveredText("x")
 			_ = s.DeliveredText()
-			_ = s.IsPreludeSent()
+			_ = s.IsMessageStarted()
 		}()
 	}
 	wg.Wait()
@@ -28,19 +28,19 @@ func TestStreamRelayState_ConcurrentAppendIsSafe(t *testing.T) {
 	assert.True(t, s.HasDeliveredText())
 }
 
-func TestStreamRelayState_PreludeAndHandoffTracking(t *testing.T) {
+func TestStreamRelayState_MessageStartAndHandoffTracking(t *testing.T) {
 	t.Parallel()
 	s := NewStreamRelayState()
 
-	assert.False(t, s.IsPreludeSent())
+	assert.False(t, s.IsMessageStarted())
 	assert.False(t, s.HasDeliveredText())
 	assert.Equal(t, 0, s.HandoffCount())
 
-	s.MarkPreludeSent()
+	s.MarkMessageStarted()
 	s.AppendDeliveredText("前半段")
 	s.AppendDeliveredText("后半段")
 
-	assert.True(t, s.IsPreludeSent())
+	assert.True(t, s.IsMessageStarted())
 	assert.Equal(t, "前半段后半段", s.DeliveredText())
 	assert.Equal(t, 1, s.BeginHandoff())
 	assert.Equal(t, 2, s.BeginHandoff())
@@ -52,11 +52,11 @@ func TestStreamRelayState_NilSafe(t *testing.T) {
 	var s *StreamRelayState
 
 	s.AppendDeliveredText("ignored")
-	s.MarkPreludeSent()
+	s.MarkMessageStarted()
 
 	assert.Equal(t, "", s.DeliveredText())
 	assert.False(t, s.HasDeliveredText())
-	assert.False(t, s.IsPreludeSent())
+	assert.False(t, s.IsMessageStarted())
 	assert.Equal(t, 0, s.BeginHandoff())
 	assert.Equal(t, 0, s.HandoffCount())
 }

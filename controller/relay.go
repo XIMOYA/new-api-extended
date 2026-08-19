@@ -365,10 +365,15 @@ func shouldRetry(c *gin.Context, info *relaycommon.RelayInfo, openaiErr *types.N
 			logger.LogWarn(c, fmt.Sprintf("skip retry: response already sent to client (chunks=%d), cannot restart the stream", info.GetSendResponseCount()))
 			return false
 		}
+		// 第一段中断时 content block 往往没收到 stop，先补一个让客户端的 block 状态闭合，
+		// 第二段再从偏移后的 index 开一个新 block，符合 Messages API 的事件契约。
+		helper.CloseOpenStreamBlock(c, info)
 		handoff := info.StreamRelay.BeginHandoff()
 		logger.LogWarn(c, fmt.Sprintf("stream handoff #%d: continuing the same SSE stream on another channel", handoff))
 		return true
 	}
+	// 这一分支特意排在渠道亲和检查之前：内容已经在向用户吐字了，
+	// 把回答救回来比保住 prompt 缓存的亲和性更重要，因此接力优先于亲和的「失败后不重试」。
 	if service.ShouldSkipRetryAfterChannelAffinityFailure(c) {
 		return false
 	}

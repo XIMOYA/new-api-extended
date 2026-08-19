@@ -13,6 +13,11 @@ var SelfUseModeEnabled = false
 //   - 断点处可能出现文风或格式跳变，回答连贯性不如一次生成。
 var StreamHandoffEnabled = false
 
+// StreamHandoffMaxAttempts 单个请求内允许的接力次数上限。
+// 每次接力都会把已输出内容重新作为 prompt 发给新上游，成本随次数线性上升，
+// 而且断点越多回答的连贯性越差，因此必须有上限。
+var StreamHandoffMaxAttempts = 2
+
 // AutomaticDisableKeywords 命中即自动禁用渠道的错误文本。
 // 匹配由 service.AcSearch 完成，模式串在建机时统一小写化，因此这里的大小写不影响匹配。
 //

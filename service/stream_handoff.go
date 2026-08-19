@@ -9,18 +9,14 @@ import (
 	"github.com/QuantumNous/new-api/setting/operation_setting"
 )
 
-// maxStreamHandoffs 限制单个请求内的接力次数。
-// 每次接力都会把已输出内容重新作为 prompt 发给新上游，成本随次数线性上升，
-// 而且断点越多回答的连贯性越差，因此必须有硬上限。
-const maxStreamHandoffs = 2
-
 // CanHandoffStream 判断一个流中途失败的请求能否交给别的渠道接着写。
 //
 // 只有满足全部条件才允许接力：
 //   - 功能已启用（默认关闭，属于会改变计费与回答连贯性的行为）；
 //   - 当前是流式请求，且已经有正文内容发给客户端（否则应该走普通重试，那样才是真正无感）；
 //   - 失败原因是上游侧问题（余额耗尽这类渠道错误），而不是客户端断开或请求本身非法；
-//   - 接力次数未超上限。
+//   - 接力次数未超上限；
+//   - 已投递文本没有大到会撑爆新上游的上下文窗口。
 func CanHandoffStream(info *relaycommon.RelayInfo, newAPIError *types.NewAPIError) bool {
 	if info == nil || newAPIError == nil {
 		return false
@@ -41,7 +37,12 @@ func CanHandoffStream(info *relaycommon.RelayInfo, newAPIError *types.NewAPIErro
 	if info.StreamRelay == nil || !info.StreamRelay.HasDeliveredText() {
 		return false
 	}
-	if info.StreamRelay.HandoffCount() >= maxStreamHandoffs {
+	// 前缀过大时接力必然被上游拒绝（撞上下文窗口或 max_tokens），
+	// 不如直接退回普通失败处理：保留已输出内容并在流内收尾。
+	if info.StreamRelay.DeliveredTextExceedsLimit() {
+		return false
+	}
+	if info.StreamRelay.HandoffCount() >= operation_setting.StreamHandoffMaxAttempts {
 		return false
 	}
 	// 客户端自己断开时重试没有意义，接力只针对上游故障。
@@ -65,12 +66,22 @@ func ApplyStreamHandoffPrefix(info *relaycommon.RelayInfo, request any) bool {
 		return false
 	}
 	delivered := info.StreamRelay.DeliveredText()
-	if strings.TrimSpace(delivered) == "" {
+	// Anthropic 对 assistant prefill 的尾随空白敏感，而流被打断的位置很容易正好
+	// 落在空格或换行上。统一右侧 trim：既规避上游 400，也不影响续写语义
+	// （模型本来就会自行决定接续处是否需要空白）。
+	delivered = strings.TrimRight(delivered, " \t\r\n")
+	if delivered == "" {
 		return false
 	}
 
 	switch req := request.(type) {
 	case *dto.ClaudeRequest:
+		// 开了 extended thinking 时，Anthropic 要求 assistant turn 以 thinking 块开头，
+		// 追加一条纯文本 assistant prefill 会与该约束冲突。宁可放弃接力，
+		// 也不要构造一个必定被上游拒绝的请求。
+		if req.Thinking != nil {
+			return false
+		}
 		return appendClaudeAssistantPrefill(req, delivered)
 	case *dto.GeneralOpenAIRequest:
 		return appendOpenAIAssistantPrefill(req, delivered)
