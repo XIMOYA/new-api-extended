@@ -100,6 +100,39 @@ var passthroughSkipHeaderNamesLower = map[string]struct{}{
 	"sec-websocket-extensions": {},
 }
 
+// 管理员在渠道里显式写死的 header override 走这份名单，比透传名单窄：
+// 透传要防的是客户端伪造和凭据外带，显式配置则只需要挡住会破坏 HTTP 语义的头。
+// 差集（host、authorization、x-api-key、x-goog-api-key）是有正当配置理由的，
+// 反代回源要改 Host，自定义鉴权要覆盖 Authorization。
+var explicitOverrideSkipHeaderNamesLower = map[string]struct{}{
+	// RFC 7230 hop-by-hop，由传输层维护，改写会破坏连接语义。
+	"connection":          {},
+	"keep-alive":          {},
+	"proxy-authenticate":  {},
+	"proxy-authorization": {},
+	"te":                  {},
+	"trailer":             {},
+	"transfer-encoding":   {},
+	"upgrade":             {},
+
+	// 请求体长度由 net/http 计算，手写会导致body错位甚至请求走私。
+	"content-length": {},
+
+	// 手动指定编码后 Go 不再自动解压，响应会变成乱码。
+	"accept-encoding": {},
+
+	// 客户端会话凭据，避免被固定带给上游。
+	"cookie": {},
+
+	// 内部约定的头，不允许从渠道配置注入。
+	"x-narrafork-quota-event": {},
+
+	// WebSocket 握手头由 dialer 生成。
+	"sec-websocket-key":        {},
+	"sec-websocket-version":    {},
+	"sec-websocket-extensions": {},
+}
+
 var headerPassthroughRegexCache sync.Map // map[string]*regexp.Regexp
 
 func getHeaderPassthroughRegex(pattern string) (*regexp.Regexp, error) {
@@ -146,6 +179,18 @@ func shouldSkipPassthroughHeader(name string) bool {
 	}
 	lower := strings.ToLower(name)
 	if _, ok := passthroughSkipHeaderNamesLower[lower]; ok {
+		return true
+	}
+	return false
+}
+
+func shouldSkipExplicitOverrideHeader(name string) bool {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return true
+	}
+	lower := strings.ToLower(name)
+	if _, ok := explicitOverrideSkipHeaderNamesLower[lower]; ok {
 		return true
 	}
 	return false
@@ -268,7 +313,7 @@ func processHeaderOverride(info *common.RelayInfo, c *gin.Context) (map[string]s
 		if isHeaderPassthroughRuleKey(k) {
 			continue
 		}
-		if shouldSkipPassthroughHeader(k) {
+		if shouldSkipExplicitOverrideHeader(k) {
 			continue
 		}
 		key := strings.TrimSpace(strings.ToLower(k))
@@ -306,7 +351,7 @@ func applyHeaderOverrideToRequest(req *http.Request, headerOverride map[string]s
 		return
 	}
 	for key, value := range headerOverride {
-		if shouldSkipPassthroughHeader(key) {
+		if shouldSkipExplicitOverrideHeader(key) {
 			continue
 		}
 		req.Header.Set(key, value)

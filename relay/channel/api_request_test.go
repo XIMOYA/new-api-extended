@@ -244,3 +244,109 @@ func TestProcessHeaderOverride_PassHeadersTemplateSetsRuntimeHeaders(t *testing.
 	require.Equal(t, "sess-123", upstreamReq.Header.Get("Session_id"))
 	require.Empty(t, upstreamReq.Header.Get("X-Codex-Beta-Features"))
 }
+
+// 渠道里显式写死的 Host / 鉴权头必须能覆盖默认值：反代回源要改 Host，
+// 自定义鉴权要顶掉适配器设置的 Authorization。透传名单曾把它们一起吃掉。
+func TestProcessHeaderOverride_ExplicitOverrideKeepsHostAndCredentials(t *testing.T) {
+	t.Parallel()
+
+	gin.SetMode(gin.TestMode)
+	recorder := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(recorder)
+	ctx.Request = httptest.NewRequest(http.MethodPost, "/v1/chat/completions", nil)
+
+	info := &relaycommon.RelayInfo{
+		ChannelMeta: &relaycommon.ChannelMeta{
+			ApiKey: "secret-key",
+			HeadersOverride: map[string]any{
+				"Host":           "models.example.test",
+				"Authorization":  "Bearer {api_key}",
+				"X-Api-Key":      "{api_key}",
+				"X-Goog-Api-Key": "goog-{api_key}",
+			},
+		},
+	}
+
+	headers, err := processHeaderOverride(info, ctx)
+	require.NoError(t, err)
+	require.Equal(t, "models.example.test", headers["host"])
+	require.Equal(t, "Bearer secret-key", headers["authorization"])
+	require.Equal(t, "secret-key", headers["x-api-key"])
+	require.Equal(t, "goog-secret-key", headers["x-goog-api-key"])
+
+	upstreamReq := httptest.NewRequest(http.MethodPost, "https://127.0.0.1:6578/v1/chat/completions", nil)
+	applyHeaderOverrideToRequest(upstreamReq, headers)
+	require.Equal(t, "models.example.test", upstreamReq.Host, "Host 必须落到 request.Host 而不是只进 Header")
+	require.Equal(t, "Bearer secret-key", upstreamReq.Header.Get("Authorization"))
+}
+
+// 会破坏 HTTP 语义的传输层头、客户端会话凭据和内部约定头，即使显式配置也不能放行。
+func TestProcessHeaderOverride_ExplicitOverrideRejectsTransportHeaders(t *testing.T) {
+	t.Parallel()
+
+	forbidden := []string{
+		"Content-Length",
+		"Transfer-Encoding",
+		"Connection",
+		"Keep-Alive",
+		"TE",
+		"Trailer",
+		"Upgrade",
+		"Proxy-Authorization",
+		"Accept-Encoding",
+		"Cookie",
+		"X-NarraFork-Quota-Event",
+		"Sec-WebSocket-Key",
+	}
+
+	for _, name := range forbidden {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			gin.SetMode(gin.TestMode)
+			recorder := httptest.NewRecorder()
+			ctx, _ := gin.CreateTestContext(recorder)
+			ctx.Request = httptest.NewRequest(http.MethodPost, "/v1/chat/completions", nil)
+
+			info := &relaycommon.RelayInfo{
+				ChannelMeta: &relaycommon.ChannelMeta{
+					HeadersOverride: map[string]any{name: "injected"},
+				},
+			}
+
+			headers, err := processHeaderOverride(info, ctx)
+			require.NoError(t, err)
+			require.Empty(t, headers, "%s 不应出现在解析结果里", name)
+		})
+	}
+}
+
+// 拆分名单只放宽显式配置，从客户端请求复制头的透传路径必须一律照旧。
+func TestProcessHeaderOverride_PassthroughStillSkipsHostAndCredentials(t *testing.T) {
+	t.Parallel()
+
+	gin.SetMode(gin.TestMode)
+	recorder := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(recorder)
+	ctx.Request = httptest.NewRequest(http.MethodPost, "/v1/chat/completions", nil)
+	ctx.Request.Header.Set("Authorization", "Bearer client-token")
+	ctx.Request.Header.Set("X-Api-Key", "client-key")
+	ctx.Request.Header.Set("Cookie", "session=abc")
+	ctx.Request.Header.Set("X-Trace-Id", "trace-123")
+	ctx.Request.Host = "client.example.test"
+
+	info := &relaycommon.RelayInfo{
+		ChannelMeta: &relaycommon.ChannelMeta{
+			HeadersOverride: map[string]any{"*": ""},
+		},
+	}
+
+	headers, err := processHeaderOverride(info, ctx)
+	require.NoError(t, err)
+	require.Equal(t, "trace-123", headers["x-trace-id"])
+
+	for _, name := range []string{"host", "authorization", "x-api-key", "cookie"} {
+		_, exists := headers[name]
+		require.False(t, exists, "透传不应带出 %s", name)
+	}
+}
