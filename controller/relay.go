@@ -396,11 +396,6 @@ func shouldRetry(c *gin.Context, info *relaycommon.RelayInfo, openaiErr *types.N
 	if operation_setting.SilentChannelSwitchEnabled && operation_setting.IsUpstreamExhaustedError(openaiErr) {
 		return true
 	}
-	// 上游自己欠费或被封禁时，有些供应商回的是 400 这类默认不重试的状态码，
-	// 静默切换下必须继续换渠道，否则第一个欠费渠道就把请求打回给用户了。
-	if operation_setting.SilentChannelSwitchEnabled && operation_setting.IsUpstreamExhaustedError(openaiErr) {
-		return true
-	}
 	code := openaiErr.StatusCode
 	if code >= 200 && code < 300 {
 		return false
