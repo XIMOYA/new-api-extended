@@ -15,11 +15,11 @@
 </p>
 
 <p align="center">
-  <a href="https://raw.githubusercontent.com/Calcium-Ion/new-api/main/LICENSE">
-    <img src="https://img.shields.io/github/license/Calcium-Ion/new-api?color=brightgreen" alt="licence">
+  <a href="https://raw.githubusercontent.com/XIMOYA/new-api-extended/main/LICENSE">
+    <img src="https://img.shields.io/github/license/XIMOYA/new-api-extended?color=brightgreen" alt="licence">
   </a><!--
-  --><a href="https://github.com/Calcium-Ion/new-api/releases/latest">
-    <img src="https://img.shields.io/github/v/release/Calcium-Ion/new-api?color=brightgreen&include_prereleases" alt="version">
+  --><a href="https://github.com/XIMOYA/new-api-extended/releases/latest">
+    <img src="https://img.shields.io/github/v/release/XIMOYA/new-api-extended?color=brightgreen&include_prereleases" alt="version">
   </a><!--
   --><a href="https://hub.docker.com/r/CalciumIon/new-api">
     <img src="https://img.shields.io/badge/docker-dockerHub-blue" alt="docker">
@@ -44,6 +44,8 @@
 </p>
 
 <p align="center">
+  <a href="#-à-propos-de-ce-fork">À propos de ce fork</a> •
+  <a href="#-modifications-de-ce-fork">Modifications du fork</a> •
   <a href="#-démarrage-rapide">Démarrage rapide</a> •
   <a href="#-fonctionnalités-clés">Fonctionnalités clés</a> •
   <a href="#-déploiement">Déploiement</a> •
@@ -60,6 +62,43 @@
 > - Les utilisateurs doivent obtenir légalement les clés API, comptes, services de modèles et autorisations d'interface en amont, et doivent respecter les conditions d'utilisation en amont et les lois et réglementations applicables.
 > - Les utilisateurs doivent s'assurer que leur utilisation est conforme aux conditions d'utilisation en amont et aux lois et réglementations applicables.
 > - Lors de la fourniture de services d'IA générative au public, les utilisateurs doivent se conformer aux exigences réglementaires applicables et remplir toutes les obligations d'enregistrement, de licence, de sécurité du contenu, de vérification d'identité, de conservation des journaux, de fiscalité et d'autorisation en amont requises par leur juridiction.
+
+---
+
+## 🔀 À propos de ce fork
+
+Ce dépôt est **New API Extended**, une version modifiée et indépendante de [New API](https://github.com/QuantumNous/new-api), maintenue dans [XIMOYA/new-api-extended](https://github.com/XIMOYA/new-api-extended). Il ne s'agit pas d'une version officielle de New API et il ne faut pas le considérer comme un support fourni par le projet amont.
+
+Les fonctions originales de New API — passerelle de modèles, relais multi-modèles, facturation, authentification, déploiement et compatibilité des données — restent disponibles. Ce fork suit son propre cycle de développement et peut diverger du projet amont par son comportement, sa configuration et son calendrier de publication.
+
+## ✨ Modifications de ce fork
+
+### 📊 Système de quotas et d'événements NarraFork
+
+- Événements de solde de quota avec détails sur les quotas, les tokens, la source de facturation, la latence et les accès au cache.
+- Périmètres de taux de succès du cache, statistiques de tokens mis en cache et affichage associé dans le tableau de bord.
+- Politiques globales, préférences d'affichage par utilisateur et par canal, ainsi que remplacements au niveau utilisateur.
+- Enregistrement des paramètres système NarraFork via une seule requête groupée validée.
+
+### 🧾 Audit du contenu des requêtes
+
+- Capture structurée des contenus JSON, des corps bruts, des données multipart et des ressources multimodales.
+- Stockage compressé avec Zstandard et chiffré avec AES-GCM, contrôle d'intégrité et nettoyage selon la durée de conservation.
+- Contrôle d'accès avec masquage, lecture en flux du contenu complet, aperçus, consultation des ressources et déduplication.
+- Vues structurées des requêtes pour consulter les détails sans exposer les données d'audit aux utilisateurs non autorisés.
+
+### 📈 Tableau de bord et observabilité de l'utilisation
+
+- Cartes de taux de succès du cache et informations détaillées sur l'utilisation du cache et des tokens.
+- Visibilité de l'effort de raisonnement et des tokens de raisonnement dans les journaux d'utilisation.
+- Diagnostics supplémentaires pour les requêtes, les quotas et l'état opérationnel dans l'interface web.
+
+### 🛡️ Fiabilité et ingénierie
+
+- Correctifs indépendants pour isoler les compartiments de limitation de débit des enregistrements de requêtes.
+- Tests de régression et documentation de développement pour les fonctionnalités spécifiques du fork, côté backend et frontend.
+
+Le projet amont reste la référence pour les fonctionnalités originales. Consultez l'historique des changements et le code source de ce dépôt pour évaluer la compatibilité avec New API.
 
 ---
 
@@ -112,8 +151,8 @@
 
 ```bash
 # Cloner le projet
-git clone https://github.com/QuantumNous/new-api.git
-cd new-api
+git clone https://github.com/XIMOYA/new-api-extended.git
+cd new-api-extended
 
 # Modifier la configuration docker-compose.yml
 nano docker-compose.yml
@@ -157,6 +196,35 @@ docker run --name new-api -d --restart always \
 > Lorsque vous exploitez ce projet en tant que service public d'IA générative ou service de revente d'API, les utilisateurs doivent d'abord remplir toutes les obligations requises en matière d'enregistrement, de licence, de sécurité du contenu, de vérification d'identité, de conservation des journaux, de fiscalité, de paiement et d'autorisation en amont.
 
 📖 Pour plus de méthodes de déploiement, veuillez vous référer à [Guide de déploiement](https://docs.newapi.pro/en/docs/installation)
+
+---
+
+## 🛠️ Compilation depuis les sources
+
+Ce fork utilise le même flux de compilation que le projet amont : construisez d'abord le frontend, puis le backend Go depuis la racine du dépôt.
+
+```bash
+cd web
+bun install --frozen-lockfile
+bun run build
+cd ..
+go build -ldflags "-s -w -X github.com/QuantumNous/new-api/common.Version=$(tr -d '\r\n' < VERSION)" -o new-api
+```
+
+### Build de test Windows AMD64
+
+Exécutez les commandes suivantes dans Git Bash sous Windows :
+
+```bash
+cd web
+bun install --frozen-lockfile
+VERSION=$(tr -d '\r\n' < ../VERSION)
+DISABLE_ESLINT_PLUGIN='true' VITE_REACT_APP_VERSION="$VERSION" bun run build
+cd ..
+go build -ldflags "-s -w -X github.com/QuantumNous/new-api/common.Version=$VERSION" -o new-api-windows-amd64-test.exe
+```
+
+Lors de la redistribution d'un exécutable compilé, conservez le code source correspondant ainsi que `LICENSE`, `NOTICE` et `THIRD-PARTY-LICENSES.md`.
 
 ---
 
@@ -296,7 +364,9 @@ docker run --name new-api -d --restart always \
 ## 🚢 Déploiement
 
 > [!TIP]
-> **Dernière image Docker:** `calciumion/new-api:latest`
+> **Dernière image Docker de l'amont :** `calciumion/new-api:latest`
+>
+> Ce fork ne publie actuellement pas d'image Docker séparée. L'image amont est fournie à titre de référence et ne contient pas automatiquement les modifications de `XIMOYA/new-api-extended` ; utilisez une compilation depuis les sources pour bénéficier des fonctionnalités de ce fork.
 
 ### 📋 Exigences de déploiement
 
@@ -350,8 +420,8 @@ docker run --name new-api -d --restart always \
 
 ```bash
 # Cloner le projet
-git clone https://github.com/QuantumNous/new-api.git
-cd new-api
+git clone https://github.com/XIMOYA/new-api-extended.git
+cd new-api-extended
 
 # Modifier la configuration
 nano docker-compose.yml
@@ -471,9 +541,19 @@ Bienvenue à toutes les formes de contribution!
 
 ## 📜 Licence
 
-Ce projet est sous licence [GNU Affero General Public License v3.0 (AGPLv3)](./LICENSE).
+Ce projet est sous licence [GNU Affero General Public License v3.0 (AGPLv3)](./LICENSE). Ce dépôt est une version modifiée et indépendante de New API, développé à l'origine à partir de [One API](https://github.com/songquanpeng/one-api) sous licence MIT.
 
-Il s'agit d'un projet open-source développé sur la base de [One API](https://github.com/songquanpeng/one-api) (licence MIT).
+Les conditions supplémentaires de la section 7 de l'AGPLv3 s'appliquent. Les versions modifiées doivent conserver la mention d'attribution suivante :
+
+```text
+Frontend design and development by New API contributors.
+```
+
+Les versions modifiées qui présentent une interface utilisateur doivent également conserver un lien visible vers le projet original : <https://github.com/QuantumNous/new-api>.
+
+Lors de la distribution d'un exécutable Windows, d'une image Docker ou d'une autre forme binaire, fournissez le code source correspondant et les instructions de compilation de cette version. Conservez `LICENSE`, `NOTICE` et `THIRD-PARTY-LICENSES.md` avec les paquets distribués lorsque cela s'applique.
+
+Si vous exploitez une version modifiée en tant que service réseau public, fournissez aux utilisateurs distants un moyen clair d'obtenir le code source correspondant à la version exécutée. Indiquez clairement les modifications et ne présentez pas ce fork comme une version officielle de New API.
 
 Si les politiques de votre organisation ne permettent pas l'utilisation de logiciels sous licence AGPLv3, ou si vous souhaitez éviter les obligations open-source de l'AGPLv3, veuillez nous contacter à : [support@quantumnous.com](mailto:support@quantumnous.com)
 
@@ -495,7 +575,7 @@ Si les politiques de votre organisation ne permettent pas l'utilisation de logic
 
 Si ce projet vous est utile, bienvenue à nous donner une ⭐️ Étoile！
 
-**[Documentation officielle](https://docs.newapi.pro/en/docs)** • **[Commentaires sur les problèmes](https://github.com/Calcium-Ion/new-api/issues)** • **[Dernière version](https://github.com/Calcium-Ion/new-api/releases)**
+**[Documentation officielle](https://docs.newapi.pro/en/docs)** • **[Problèmes du fork](https://github.com/XIMOYA/new-api-extended/issues)** • **[Versions du fork](https://github.com/XIMOYA/new-api-extended/releases)**
 
 <sub>Construit avec ❤️ par QuantumNous</sub>
 

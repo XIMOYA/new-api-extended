@@ -1,4 +1,22 @@
 /*
+Copyright (C) 2023-2026 QuantumNous
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as
+published by the Free Software Foundation, either version 3 of the
+License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+For commercial licensing, please contact support@quantumnous.com
+*/
+/*
 web/src/features/system-settings/models/narrafork-preview-panel.tsx
 组件：NarraFork 额度事件实时预览与测试
 职责：
@@ -55,7 +73,9 @@ export function NarraForkPreviewPanel({ config, disabled = false }: Props) {
       setTestResult(response)
       toast.success(t('NarraFork test event received'))
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : t('Failed to send test event'))
+      toast.error(
+        error instanceof Error ? error.message : t('Failed to send test event')
+      )
     } finally {
       setIsTesting(false)
     }
@@ -81,7 +101,9 @@ export function NarraForkPreviewPanel({ config, disabled = false }: Props) {
       </div>
 
       {isPreviewing && (
-        <div className='text-muted-foreground text-xs'>{t('Updating preview...')}</div>
+        <div className='text-muted-foreground text-xs'>
+          {t('Updating preview...')}
+        </div>
       )}
       {preview && (
         <div className='space-y-2'>
@@ -103,7 +125,9 @@ export function NarraForkPreviewPanel({ config, disabled = false }: Props) {
       )}
       {testResult && (
         <div>
-          <div className='mb-1 text-xs font-medium'>{t('Test SSE response')}</div>
+          <div className='mb-1 text-xs font-medium'>
+            {t('Test SSE response')}
+          </div>
           <pre className='bg-background max-h-40 overflow-auto rounded border p-3 text-xs whitespace-pre-wrap'>
             {testResult}
           </pre>

@@ -1,3 +1,5 @@
+// common/constants.go
+// 通用常量：集中定义应用默认版本与全局运行配置。
 package common
 
 import (
@@ -10,8 +12,10 @@ import (
 	"github.com/google/uuid"
 )
 
+const DefaultVersion = "v0.0.0"
+
 var StartTime = time.Now().Unix() // unit: second
-var Version = "v0.0.0"            // this hard coding will be replaced automatically when building, no need to manually change
+var Version = DefaultVersion      // this hard coding will be replaced automatically when building, no need to manually change
 var SystemName = "New API"
 var Footer = ""
 var Logo = ""

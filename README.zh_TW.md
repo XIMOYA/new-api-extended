@@ -15,11 +15,11 @@
 </p>
 
 <p align="center">
-  <a href="https://raw.githubusercontent.com/Calcium-Ion/new-api/main/LICENSE">
-    <img src="https://img.shields.io/github/license/Calcium-Ion/new-api?color=brightgreen" alt="license">
+  <a href="https://raw.githubusercontent.com/XIMOYA/new-api-extended/main/LICENSE">
+    <img src="https://img.shields.io/github/license/XIMOYA/new-api-extended?color=brightgreen" alt="license">
   </a>
-  <a href="https://github.com/Calcium-Ion/new-api/releases/latest">
-    <img src="https://img.shields.io/github/v/release/Calcium-Ion/new-api?color=brightgreen&include_prereleases" alt="release">
+  <a href="https://github.com/XIMOYA/new-api-extended/releases/latest">
+    <img src="https://img.shields.io/github/v/release/XIMOYA/new-api-extended?color=brightgreen&include_prereleases" alt="release">
   </a>
   <a href="https://hub.docker.com/r/CalciumIon/new-api">
     <img src="https://img.shields.io/badge/docker-dockerHub-blue" alt="docker">
@@ -43,6 +43,8 @@
 </p>
 
 <p align="center">
+  <a href="#-本專案二開說明">二開說明</a> •
+  <a href="#-二開內容">二開內容</a> •
   <a href="#-快速開始">快速開始</a> •
   <a href="#-主要特性">主要特性</a> •
   <a href="#-部署">部署</a> •
@@ -59,6 +61,43 @@
 > - 使用者必須合法取得上游 API Key、帳號、模型服務或介面權限，並遵守上游服務條款及適用法律法規。
 > - 使用者應確保其使用方式符合上游服務條款及適用法律法規。
 > - 面向公眾提供生成式人工智慧服務時，使用者應遵守[《生成式人工智慧服務管理暫行辦法》](http://www.cac.gov.cn/2023-07/13/c_1690898327029107.htm)等監管要求，自行完成所在司法轄區要求的備案、許可、內容安全、實名、日誌留存、稅務和上游授權等合規義務。
+
+---
+
+## 🔀 本專案二開說明
+
+本倉庫是 **New API Extended**，基於 [New API](https://github.com/QuantumNous/new-api) 獨立維護的綜合增強版，倉庫地址為 [XIMOYA/new-api-extended](https://github.com/XIMOYA/new-api-extended)。本專案不是 New API 官方發行版，也不代表上游專案提供支援或背書。
+
+原版 New API 的大模型閘道、多模型轉發、計費、鑑權、部署和資料相容能力仍然保留。本專案會在此基礎上持續維護獨立功能，因此設定、行為和發行節奏可能與上游版本產生差異。
+
+## ✨ 二開內容
+
+### 📊 NarraFork 配額與事件系統
+
+- 支援配額餘額事件，並補充詳細配額、Token、計費來源、延遲和快取命中資訊。
+- 支援快取命中率範圍、快取命中 Token 統計及相關看板展示。
+- 支援全域策略、使用者級設定、渠道級顯示偏好和使用者覆寫設定。
+- NarraFork 系統設定使用一次校驗後的批量請求提交，避免逐項儲存產生大量請求。
+
+### 🧾 請求內容審計
+
+- 支援 JSON、原始請求體、Multipart 和多模態資源的結構化採集。
+- 請求正文和資源使用 Zstandard 壓縮、AES-GCM 加密，並提供完整性校驗和保留期清理。
+- 支援按權限脫敏檢視、完整內容串流讀取、預覽、資源檢視和資源去重。
+- 支援結構化請求記錄頁面，在不向未授權使用者暴露審計內容的前提下檢視請求詳情。
+
+### 📈 看板與用量觀測
+
+- 增加快取命中率卡片和更詳細的快取/Token 用量資訊。
+- 用量日誌展示推理力度和推理 Token 等資訊。
+- 增強請求記錄、配額和執行狀態診斷能力。
+
+### 🛡️ 穩定性與工程改進
+
+- 修復請求記錄關鍵限流桶共用導致的隔離問題。
+- 為配額計算、請求內容存取、串流讀取、限流和新增前後端功能補充回歸測試與開發文件。
+
+上游專案仍是原版功能和相容性的參考來源。使用本專案時，請結合變更記錄和原始碼確認與上游 New API 的相容性。
 
 ---
 
@@ -111,8 +150,8 @@
 
 ```bash
 # 複製項目
-git clone https://github.com/QuantumNous/new-api.git
-cd new-api
+git clone https://github.com/XIMOYA/new-api-extended.git
+cd new-api-extended
 
 # 編輯 docker-compose.yml 配置
 nano docker-compose.yml
@@ -156,6 +195,35 @@ docker run --name new-api -d --restart always \
 > 將本專案作為面向公眾的生成式 AI 服務或 API 轉售服務運營時，使用者應先完成備案、內容安全、實名、日誌留存、稅務、支付和上游授權等合規義務。
 
 📖 更多部署方式請參考 [部署指南](https://docs.newapi.pro/zh/docs/installation)
+
+---
+
+## 🛠️ 原始碼建置
+
+本專案與上游使用相同的原始碼建置流程：先建置前端資源，再從倉庫根目錄建置 Go 後端。
+
+```bash
+cd web
+bun install --frozen-lockfile
+bun run build
+cd ..
+go build -ldflags "-s -w -X github.com/QuantumNous/new-api/common.Version=$(tr -d '\r\n' < VERSION)" -o new-api
+```
+
+### Windows AMD64 測試版
+
+請在 Windows 的 Git Bash 中執行：
+
+```bash
+cd web
+bun install --frozen-lockfile
+VERSION=$(tr -d '\r\n' < ../VERSION)
+DISABLE_ESLINT_PLUGIN='true' VITE_REACT_APP_VERSION="$VERSION" bun run build
+cd ..
+go build -ldflags "-s -w -X github.com/QuantumNous/new-api/common.Version=$VERSION" -o new-api-windows-amd64-test.exe
+```
+
+重新分發編譯後的程式時，請同時保留對應原始碼、`LICENSE`、`NOTICE` 和 `THIRD-PARTY-LICENSES.md`。
 
 ---
 
@@ -295,7 +363,9 @@ docker run --name new-api -d --restart always \
 ## 🚢 部署
 
 > [!TIP]
-> **最新版 Docker 鏡像：** `calciumion/new-api:latest`
+> **上游最新版 Docker 鏡像：** `calciumion/new-api:latest`
+>
+> 本二開版本目前沒有單獨發布 Docker 鏡像。上游鏡像僅供參考，並不自動包含 `XIMOYA/new-api-extended` 的改動；需要使用本專案功能時，請從原始碼建置。
 
 ### 📋 部署要求
 
@@ -349,8 +419,8 @@ docker run --name new-api -d --restart always \
 
 ```bash
 # 複製項目
-git clone https://github.com/QuantumNous/new-api.git
-cd new-api
+git clone https://github.com/XIMOYA/new-api-extended.git
+cd new-api-extended
 
 # 編輯配置
 nano docker-compose.yml
@@ -470,9 +540,19 @@ Token、Origin 驗證和 PAT 契約請參閱[使用者鑑權與登入工作階�
 
 ## 📜 許可證
 
-本項目採用 [GNU Affero 通用公共許可證 v3.0 (AGPLv3)](./LICENSE) 授權。
+本專案採用 [GNU Affero 通用公共許可證 v3.0（AGPLv3）](./LICENSE) 授權。本倉庫是 New API 的獨立修改版本，最初基於 [One API](https://github.com/songquanpeng/one-api)（MIT 許可證）進行二次開發。
 
-本項目為開源項目，在 [One API](https://github.com/songquanpeng/one-api)（MIT 許可證）的基礎上進行二次開發。
+根據 AGPLv3 第 7 節的附加條款，修改版本必須保留以下作者署名：
+
+```text
+Frontend design and development by New API contributors.
+```
+
+帶有使用者介面的修改版本還必須保留原專案的可見連結：<https://github.com/QuantumNous/new-api>。
+
+重新分發 Windows 可執行檔、Docker 鏡像或其他二進位形式時，請同時提供該版本對應的原始碼和建置說明，並在適用時保留 `LICENSE`、`NOTICE` 和 `THIRD-PARTY-LICENSES.md`。
+
+如果將修改版本作為公網服務執行，請向遠端使用者提供清晰的原始碼取得方式，並明確標注本專案已經過修改，不能使使用者誤認為這是 New API 官方發行版。
 
 如果您所在的組織政策不允許使用 AGPLv3 許可的軟體，或您希望規避 AGPLv3 的開源義務，請發送郵件至：[support@quantumnous.com](mailto:support@quantumnous.com)
 
@@ -494,7 +574,7 @@ Token、Origin 驗證和 PAT 契約請參閱[使用者鑑權與登入工作階�
 
 如果這個項目對你有幫助，歡迎給我們一個 ⭐️ Star！
 
-**[官方文件](https://docs.newapi.pro/zh/docs)** • **[問題回饋](https://github.com/Calcium-Ion/new-api/issues)** • **[最新發布](https://github.com/Calcium-Ion/new-api/releases)**
+**[官方文件](https://docs.newapi.pro/zh/docs)** • **[二開問題回饋](https://github.com/XIMOYA/new-api-extended/issues)** • **[二開版本發布](https://github.com/XIMOYA/new-api-extended/releases)**
 
 <sub>Built with ❤️ by QuantumNous</sub>
 

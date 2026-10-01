@@ -15,11 +15,11 @@
 </p>
 
 <p align="center">
-  <a href="https://raw.githubusercontent.com/Calcium-Ion/new-api/main/LICENSE">
-    <img src="https://img.shields.io/github/license/Calcium-Ion/new-api?color=brightgreen" alt="license">
+  <a href="https://raw.githubusercontent.com/XIMOYA/new-api-extended/main/LICENSE">
+    <img src="https://img.shields.io/github/license/XIMOYA/new-api-extended?color=brightgreen" alt="license">
   </a><!--
-  --><a href="https://github.com/Calcium-Ion/new-api/releases/latest">
-    <img src="https://img.shields.io/github/v/release/Calcium-Ion/new-api?color=brightgreen&include_prereleases" alt="release">
+  --><a href="https://github.com/XIMOYA/new-api-extended/releases/latest">
+    <img src="https://img.shields.io/github/v/release/XIMOYA/new-api-extended?color=brightgreen&include_prereleases" alt="release">
   </a><!--
   --><a href="https://hub.docker.com/r/CalciumIon/new-api">
     <img src="https://img.shields.io/badge/docker-dockerHub-blue" alt="docker">
@@ -44,6 +44,8 @@
 </p>
 
 <p align="center">
+  <a href="#-このフォークについて">フォークについて</a> •
+  <a href="#-このフォークの変更点">変更点</a> •
   <a href="#-クイックスタート">クイックスタート</a> •
   <a href="#-主な機能">主な機能</a> •
   <a href="#-デプロイ">デプロイ</a> •
@@ -60,6 +62,43 @@
 > - ユーザーは、上流の API キー、アカウント、モデルサービス、インターフェース権限を合法的に取得し、上流のサービス利用規約および適用される法律法規を遵守する必要があります。
 > - ユーザーは、利用方法が上流のサービス利用規約および適用される法律法規に準拠していることを確認してください。
 > - 生成 AI サービスを公衆に提供する場合、ユーザーは適用される規制要件を遵守し、管轄区域で求められる届出、ライセンス、コンテンツセキュリティ、本人確認、ログ保持、税務、上流認可などのすべての義務を履行してください。
+
+---
+
+## 🔀 このフォークについて
+
+このリポジトリは、[New API](https://github.com/QuantumNous/new-api) を独立して改修した **New API Extended** です。[XIMOYA/new-api-extended](https://github.com/XIMOYA/new-api-extended) で個別に保守されています。New API の公式リリースではなく、上流プロジェクトのサポートを意味するものでもありません。
+
+元の New API が提供する大規模モデルゲートウェイ、マルチモデルリレー、課金、認証、デプロイ、データ互換性の機能は引き続き利用できます。このフォークは独自の開発サイクルで保守されるため、動作、設定、リリース時期が上流版と異なる場合があります。
+
+## ✨ このフォークの変更点
+
+### 📊 NarraFork クォータとイベントシステム
+
+- クォータ残高イベントに、クォータ、トークン、課金元、レイテンシ、キャッシュヒットの詳細を追加。
+- キャッシュヒット率のスコープ、キャッシュヒットトークンの統計、関連するダッシュボード表示に対応。
+- グローバルポリシー、ユーザー単位・チャネル単位の表示設定、ユーザー上書き設定に対応。
+- NarraFork のシステム設定を、検証済みの単一バッチリクエストで保存。
+
+### 🧾 リクエストコンテンツ監査
+
+- JSON、raw body、multipart、マルチモーダルリソースの構造化キャプチャに対応。
+- Zstandard 圧縮と AES-GCM 暗号化による保存、完全性検証、保持期間に基づくクリーンアップに対応。
+- 権限に応じたマスキング、完全コンテンツのストリーミング読み取り、プレビュー、リソース表示、重複排除に対応。
+- 権限のないユーザーに監査データを公開せず、構造化されたリクエスト記録を確認できる画面を追加。
+
+### 📈 ダッシュボードと利用状況の可観測性
+
+- キャッシュヒット率カードと、キャッシュ/トークン利用量の詳細表示を追加。
+- 利用ログで推論の強度と推論トークンを確認可能。
+- リクエスト記録、クォータ、運用状態の診断情報を拡充。
+
+### 🛡️ 安定性とエンジニアリング
+
+- リクエスト記録の重要なレート制限バケットを分離する独自修正を追加。
+- フォーク固有のバックエンド・フロントエンド機能について、回帰テストと開発ドキュメントを追加。
+
+上流プロジェクトは元の機能の参照先です。New API との互換性を確認する際は、このリポジトリの変更履歴とソースコードを確認してください。
 
 ---
 
@@ -112,8 +151,8 @@
 
 ```bash
 # プロジェクトをクローン
-git clone https://github.com/QuantumNous/new-api.git
-cd new-api
+git clone https://github.com/XIMOYA/new-api-extended.git
+cd new-api-extended
 
 # docker-compose.yml 設定を編集
 nano docker-compose.yml
@@ -157,6 +196,35 @@ docker run --name new-api -d --restart always \
 > 本プロジェクトを公衆向け生成 AI サービスまたは API 再販サービスとして運営する場合、ユーザーは届出、コンテンツセキュリティ、本人確認、ログ保持、税務、決済、上流認可などの必要なコンプライアンス義務を先に完了してください。
 
 📖 その他のデプロイ方法については[デプロイガイド](https://docs.newapi.pro/ja/docs/installation)を参照してください。
+
+---
+
+## 🛠️ ソースからのビルド
+
+このフォークは上流プロジェクトと同じビルドフローを使用します。まずフロントエンドをビルドし、その後リポジトリのルートから Go バックエンドをビルドしてください。
+
+```bash
+cd web
+bun install --frozen-lockfile
+bun run build
+cd ..
+go build -ldflags "-s -w -X github.com/QuantumNous/new-api/common.Version=$(tr -d '\r\n' < VERSION)" -o new-api
+```
+
+### Windows AMD64 テストビルド
+
+Windows の Git Bash で次のコマンドを実行してください。
+
+```bash
+cd web
+bun install --frozen-lockfile
+VERSION=$(tr -d '\r\n' < ../VERSION)
+DISABLE_ESLINT_PLUGIN='true' VITE_REACT_APP_VERSION="$VERSION" bun run build
+cd ..
+go build -ldflags "-s -w -X github.com/QuantumNous/new-api/common.Version=$VERSION" -o new-api-windows-amd64-test.exe
+```
+
+ビルド済みの実行ファイルを再配布する場合は、対応するソースコード、`LICENSE`、`NOTICE`、`THIRD-PARTY-LICENSES.md` を保持してください。
 
 ---
 
@@ -298,7 +366,9 @@ docker run --name new-api -d --restart always \
 ## 🚢 デプロイ
 
 > [!TIP]
-> **最新のDockerイメージ:** `calciumion/new-api:latest`
+> **上流の最新Dockerイメージ:** `calciumion/new-api:latest`
+>
+> このフォークは現在、独自のDockerイメージを公開していません。上流イメージは参考用であり、`XIMOYA/new-api-extended` の変更が自動的に含まれるわけではありません。このフォークの機能を利用する場合は、ソースからビルドしてください。
 
 ### 📋 デプロイ要件
 
@@ -352,8 +422,8 @@ docker run --name new-api -d --restart always \
 
 ```bash
 # プロジェクトをクローン
-git clone https://github.com/QuantumNous/new-api.git
-cd new-api
+git clone https://github.com/XIMOYA/new-api-extended.git
+cd new-api-extended
 
 # 設定を編集
 nano docker-compose.yml
@@ -471,9 +541,19 @@ Token、Origin 検証、PAT の契約については[ユーザー認証とログ
 
 ## 📜 ライセンス
 
-このプロジェクトは [GNU Affero General Public License v3.0 (AGPLv3)](./LICENSE) の下でライセンスされています。
+このプロジェクトは [GNU Affero General Public License v3.0 (AGPLv3)](./LICENSE) の下でライセンスされています。このリポジトリは New API の独立した改変版であり、もともとは MIT ライセンスの [One API](https://github.com/songquanpeng/one-api) をベースに開発されました。
 
-本プロジェクトは、[One API](https://github.com/songquanpeng/one-api)（MITライセンス）をベースに開発されたオープンソースプロジェクトです。
+AGPLv3 第 7 条の追加条件が適用されます。改変版では、次の作者表示を保持してください。
+
+```text
+Frontend design and development by New API contributors.
+```
+
+ユーザーインターフェースを提供する改変版では、元のプロジェクトへの見えるリンクも保持してください：<https://github.com/QuantumNous/new-api>。
+
+Windows 実行ファイル、Docker イメージ、その他のバイナリ形式を配布する場合は、そのバージョンに対応するソースコードとビルド手順を提供してください。該当する場合は、配布物に `LICENSE`、`NOTICE`、`THIRD-PARTY-LICENSES.md` を含めてください。
+
+改変版を公開ネットワークサービスとして運用する場合は、実行中のバージョンに対応するソースコードの取得方法をリモートユーザーに明確に示してください。改変版であることを明示し、New API 公式版であるかのように表示しないでください。
 
 お客様の組織のポリシーがAGPLv3ライセンスのソフトウェアの使用を許可していない場合、またはAGPLv3のオープンソース義務を回避したい場合は、こちらまでお問い合わせください：[support@quantumnous.com](mailto:support@quantumnous.com)
 
@@ -495,7 +575,7 @@ Token、Origin 検証、PAT の契約については[ユーザー認証とログ
 
 このプロジェクトがあなたのお役に立てたなら、ぜひ ⭐️ スターをください！
 
-**[公式ドキュメント](https://docs.newapi.pro/ja/docs)** • **[問題フィードバック](https://github.com/Calcium-Ion/new-api/issues)** • **[最新リリース](https://github.com/Calcium-Ion/new-api/releases)**
+**[公式ドキュメント](https://docs.newapi.pro/ja/docs)** • **[フォークの問題報告](https://github.com/XIMOYA/new-api-extended/issues)** • **[フォークのリリース](https://github.com/XIMOYA/new-api-extended/releases)**
 
 <sub>❤️ で構築された QuantumNous</sub>
 

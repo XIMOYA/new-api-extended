@@ -1,3 +1,21 @@
+/*
+Copyright (C) 2023-2026 QuantumNous
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as
+published by the Free Software Foundation, either version 3 of the
+License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+For commercial licensing, please contact support@quantumnous.com
+*/
 // web/src/features/request-records/__tests__/request-content-highlight.test.ts
 // 最新用户消息摘要接口封装：成功时原样返回，HTTP 失败或业务失败时静默降级成"没有摘要"，
 // 并确认请求带上了跳过全局错误处理的配置（列表页每行都会调，绝不能弹 toast 或跳 500 页）。

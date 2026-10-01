@@ -16,20 +16,27 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-// web/src/routes/_authenticated/request-records/index.tsx
-// 请求记录路由：将独立审计页面挂载到已登录用户布局。
+// web/src/features/system-settings/models/request-content-audit-save.ts
+// 顺序保存请求内容审计配置，并在业务失败后停止后续提交。
 
-import { createFileRoute } from '@tanstack/react-router'
-import z from 'zod'
+export type RequestContentAuditOptionEntry = {
+  key: string
+  value: string
+}
 
-import { RequestRecords } from '@/features/request-records'
+export type RequestContentAuditOptionResult = {
+  success: boolean
+}
 
-const requestRecordsSearchSchema = z.object({
-  page: z.number().int().min(1).optional().catch(1),
-  requestId: z.string().optional().catch(''),
-})
-
-export const Route = createFileRoute('/_authenticated/request-records/')({
-  validateSearch: requestRecordsSearchSchema,
-  component: RequestRecords,
-})
+export async function saveRequestContentAuditOptions(
+  entries: RequestContentAuditOptionEntry[],
+  updateOption: (
+    entry: RequestContentAuditOptionEntry
+  ) => Promise<RequestContentAuditOptionResult>
+): Promise<boolean> {
+  for (const entry of entries) {
+    const result = await updateOption(entry)
+    if (!result.success) return false
+  }
+  return true
+}

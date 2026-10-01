@@ -16,20 +16,17 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-// web/src/routes/_authenticated/request-records/index.tsx
-// 请求记录路由：将独立审计页面挂载到已登录用户布局。
+// web/src/features/system-settings/maintenance/lib/upstream-version.ts
+// 系统维护：从 XIMOYA 二开版本中提取上游版本，用于兼容上游更新检查。
 
-import { createFileRoute } from '@tanstack/react-router'
-import z from 'zod'
+const XIMOYA_VERSION_SUFFIX =
+  /-ximoya\.\d+(?:-\d+-g[0-9a-f]+)?(?:-dirty)?(?:\+[^\s]+)?$/i
 
-import { RequestRecords } from '@/features/request-records'
+export function getUpstreamVersion(
+  version?: string | null
+): string | undefined {
+  const normalizedVersion = version?.trim()
+  if (!normalizedVersion) return undefined
 
-const requestRecordsSearchSchema = z.object({
-  page: z.number().int().min(1).optional().catch(1),
-  requestId: z.string().optional().catch(''),
-})
-
-export const Route = createFileRoute('/_authenticated/request-records/')({
-  validateSearch: requestRecordsSearchSchema,
-  component: RequestRecords,
-})
+  return normalizedVersion.replace(XIMOYA_VERSION_SUFFIX, '')
+}

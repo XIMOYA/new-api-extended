@@ -16,6 +16,8 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
+// web/src/features/system-settings/maintenance/update-checker-section.tsx
+// 系统维护：展示 NewAPI 当前构建版本、XIMOYA 优化署名，并检查上游发布版本。
 import { ExternalLinkIcon, RefreshCcwIcon } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -27,6 +29,7 @@ import { Markdown } from '@/components/ui/markdown'
 import { formatTimestamp, formatTimestampToDate } from '@/lib/format'
 
 import { SettingsSection } from '../components/settings-section'
+import { getUpstreamVersion } from './lib/upstream-version'
 
 type ReleaseInfo = {
   tag_name: string
@@ -52,6 +55,7 @@ export function UpdateCheckerSection({
 
   const uptime = startTime ? formatTimestamp(startTime) : t('Unknown')
   const version = currentVersion || t('Unknown')
+  const upstreamVersion = getUpstreamVersion(currentVersion)
 
   const handleCheckUpdates = async () => {
     setChecking(true)
@@ -75,7 +79,7 @@ export function UpdateCheckerSection({
         throw new Error(t('Unexpected release payload'))
       }
 
-      if (currentVersion && data.tag_name === currentVersion) {
+      if (upstreamVersion && data.tag_name === upstreamVersion) {
         toast.success(
           t('You are running the latest version ({{version}}).', {
             version: data.tag_name,
@@ -112,7 +116,12 @@ export function UpdateCheckerSection({
               <div className='text-muted-foreground text-sm'>
                 {t('Current version')}
               </div>
-              <div className='text-lg font-semibold'>{version}</div>
+              <div className='text-lg font-semibold'>
+                {t('NewAPI')} {version}
+              </div>
+              <div className='text-muted-foreground text-sm'>
+                {t('Optimized by XIMOYA')}
+              </div>
             </div>
             <div className='rounded-lg border p-4'>
               <div className='text-muted-foreground text-sm'>

@@ -78,7 +78,9 @@ export function UsageLogsTable({ logCategory }: UsageLogsTableProps) {
   const { isAdminView: isAdmin } = useLogsViewScope()
   const isMobile = useMediaQuery('(max-width: 640px)')
   const searchParams = route.useSearch()
-  const [highlightRequestId, setHighlightRequestId] = useState<string | null>(null)
+  const [highlightRequestId, setHighlightRequestId] = useState<string | null>(
+    null
+  )
 
   useEffect(() => {
     const requestId = searchParams.requestId

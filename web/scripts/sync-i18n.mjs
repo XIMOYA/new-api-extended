@@ -16,6 +16,8 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
+// web/scripts/sync-i18n.mjs
+// 国际化：同步各语言文件，并识别允许保留原文的品牌与版本署名。
 import fs from 'node:fs/promises'
 import path from 'node:path'
 
@@ -69,6 +71,7 @@ const BRAND_AND_LITERAL_KEYS = new Set([
   'NewAPI',
   'OAuth Client Secret',
   'OhMyGPT',
+  'Optimized by XIMOYA',
   'Ollama',
   'One API',
   'OpenAI',
@@ -123,7 +126,7 @@ function stableStringify(obj) {
   for (const key of OBFUSCATED_KEYS) {
     text = text.replaceAll(`"${key.runtime}":`, `"${key.serialized}":`)
   }
-  return text + '\n'
+  return `${text}\n`
 }
 
 function countLeafKeys(obj) {
@@ -154,7 +157,7 @@ function reorderLikeBase(
 
     for (const key of Object.keys(base)) {
       const nextPath = [...currentPath, key]
-      if (Object.prototype.hasOwnProperty.call(t, key)) {
+      if (Object.hasOwn(t, key)) {
         out[key] = reorderLikeBase(
           base[key],
           t[key],
@@ -177,7 +180,7 @@ function reorderLikeBase(
     }
 
     for (const key of Object.keys(t)) {
-      if (!Object.prototype.hasOwnProperty.call(base, key)) {
+      if (!Object.hasOwn(base, key)) {
         const nextPath = [...currentPath, key].join('.')
         extras[nextPath] = t[key]
       }
@@ -210,10 +213,10 @@ function isLikelyUntranslated({ locale, baseValue, value }) {
     /^[\w.-]+@[\w.-]+$/.test(s) ||
     /^smtp\./i.test(s) ||
     /^socks5:/i.test(s) ||
-    /^org-/.test(s) ||
+    s.startsWith('org-') ||
     /^gpt-/i.test(s) ||
-    /^checkout\./.test(s) ||
-    /^footer\./.test(s) ||
+    s.startsWith('checkout.') ||
+    s.startsWith('footer.') ||
     /^[A-Z0-9_ *./:-]+$/.test(s) ||
     s.startsWith('{') ||
     s.startsWith('[') ||
@@ -229,8 +232,9 @@ function isLikelyUntranslated({ locale, baseValue, value }) {
   if (locale === 'ru') return true
 
   // For fr/vi: still useful but noisier; keep it conservative.
-  if (locale === 'fr' || locale === 'vi')
+  if (locale === 'fr' || locale === 'vi') {
     return /\b(the|and|or|to|with|please)\b/i.test(s)
+  }
 
   return false
 }

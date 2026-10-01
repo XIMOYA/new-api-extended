@@ -16,9 +16,8 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import type { TFunction } from 'i18next'
 import { useNavigate } from '@tanstack/react-router'
-import { useEffect, useState } from 'react'
+import type { TFunction } from 'i18next'
 /*
 Copyright (C) 2023-2026 QuantumNous
 
@@ -52,6 +51,7 @@ import {
   Info,
   LogIn,
 } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { Dialog } from '@/components/dialog'
@@ -497,7 +497,9 @@ function RequestContentSection(props: { requestId: string; isAdmin: boolean }) {
   }, [props.requestId])
 
   return (
-    <DetailSection label={t(props.isAdmin ? 'Request Content' : 'My Request Content')}>
+    <DetailSection
+      label={t(props.isAdmin ? 'Request Content' : 'My Request Content')}
+    >
       <div className='space-y-2'>
         <p
           className='text-muted-foreground line-clamp-4 max-h-20 overflow-hidden text-xs leading-relaxed break-all whitespace-pre-wrap'

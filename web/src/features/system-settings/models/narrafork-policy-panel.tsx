@@ -1,4 +1,22 @@
 /*
+Copyright (C) 2023-2026 QuantumNous
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as
+published by the Free Software Foundation, either version 3 of the
+License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+For commercial licensing, please contact support@quantumnous.com
+*/
+/*
 web/src/features/system-settings/models/narrafork-policy-panel.tsx
 组件：NarraFork 用户组/用户作用域策略管理
 职责：
@@ -41,7 +59,8 @@ function prettyConfig(config: NarraForkPolicyPatch): string {
 
 export function NarraForkPolicyPanel({ disabled = false }: Props) {
   const { t } = useTranslation()
-  const [scopeType, setScopeType] = useState<(typeof scopeTypes)[number]>('group')
+  const [scopeType, setScopeType] =
+    useState<(typeof scopeTypes)[number]>('group')
   const [scopeKey, setScopeKey] = useState('')
   const [configText, setConfigText] = useState('{}')
   const [policies, setPolicies] = useState<NarraForkPolicy[]>([])
@@ -60,7 +79,9 @@ export function NarraForkPolicyPanel({ disabled = false }: Props) {
       if (!response.success) throw new Error(response.message)
       setPolicies(response.data || [])
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : t('Failed to load settings'))
+      toast.error(
+        error instanceof Error ? error.message : t('Failed to load settings')
+      )
     } finally {
       setIsLoading(false)
     }
@@ -72,7 +93,8 @@ export function NarraForkPolicyPanel({ disabled = false }: Props) {
 
   useEffect(() => {
     const policy = policies.find(
-      (item) => item.scope_type === scopeType && item.scope_key === scopeKey.trim()
+      (item) =>
+        item.scope_type === scopeType && item.scope_key === scopeKey.trim()
     )
     setConfigText(policy ? prettyConfig(policy.config) : '{}')
   }, [policies, scopeKey, scopeType])
@@ -104,12 +126,18 @@ export function NarraForkPolicyPanel({ disabled = false }: Props) {
     }
     setIsSaving(true)
     try {
-      const response = await updateNarraForkPolicy(scopeType, normalizedKey, config)
+      const response = await updateNarraForkPolicy(
+        scopeType,
+        normalizedKey,
+        config
+      )
       if (!response.success) throw new Error(response.message)
       toast.success(t('NarraFork policy saved'))
       await loadPolicies()
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : t('Failed to save setting'))
+      toast.error(
+        error instanceof Error ? error.message : t('Failed to save setting')
+      )
     } finally {
       setIsSaving(false)
     }
@@ -126,7 +154,9 @@ export function NarraForkPolicyPanel({ disabled = false }: Props) {
       setConfigText('{}')
       await loadPolicies()
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : t('Failed to update setting'))
+      toast.error(
+        error instanceof Error ? error.message : t('Failed to update setting')
+      )
     } finally {
       setIsSaving(false)
     }
@@ -172,9 +202,7 @@ export function NarraForkPolicyPanel({ disabled = false }: Props) {
             value={scopeKey}
             onChange={(event) => setScopeKey(event.target.value)}
             placeholder={
-              scopeType === 'group'
-                ? t('Example: vip')
-                : t('Example: 123')
+              scopeType === 'group' ? t('Example: vip') : t('Example: 123')
             }
             disabled={disabled || isSaving}
           />
@@ -216,7 +244,9 @@ export function NarraForkPolicyPanel({ disabled = false }: Props) {
           value={configText}
           onChange={(event) => setConfigText(event.target.value)}
           className='min-h-48 font-mono text-xs'
-          placeholder={t('Example: {"cache_hit_rate_scope":"recent_days","cache_hit_rate_days":7}')}
+          placeholder={t(
+            'Example: {"cache_hit_rate_scope":"recent_days","cache_hit_rate_days":7}'
+          )}
           disabled={disabled || isSaving}
         />
         <p className='text-muted-foreground text-xs'>
@@ -225,7 +255,11 @@ export function NarraForkPolicyPanel({ disabled = false }: Props) {
       </div>
 
       <div className='flex flex-wrap gap-2'>
-        <Button type='button' onClick={() => void save()} disabled={disabled || isSaving}>
+        <Button
+          type='button'
+          onClick={() => void save()}
+          disabled={disabled || isSaving}
+        >
           {t('Save NarraFork policy')}
         </Button>
         <Button

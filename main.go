@@ -1,3 +1,5 @@
+// main.go
+// 应用入口：初始化运行资源，并解析可追溯的构建版本。
 package main
 
 import (
@@ -44,6 +46,28 @@ var buildFS embed.FS
 
 //go:embed web/dist/index.html
 var indexPage []byte
+
+//go:embed VERSION
+var embeddedVersion string
+
+// resolveBuildVersion keeps command-line linker injection authoritative while
+// allowing ordinary Go builds to use the repository's VERSION file.
+func resolveBuildVersion(linkedVersion, versionFile string) string {
+	linkedVersion = strings.TrimSpace(linkedVersion)
+	if linkedVersion != "" && linkedVersion != common.DefaultVersion {
+		return linkedVersion
+	}
+
+	versionFile = strings.TrimSpace(versionFile)
+	if versionFile != "" {
+		return versionFile
+	}
+
+	if linkedVersion != "" {
+		return linkedVersion
+	}
+	return common.DefaultVersion
+}
 
 func main() {
 	startTime := time.Now()
@@ -292,6 +316,7 @@ func InitResources() error {
 	}
 
 	// 加载环境变量
+	common.Version = resolveBuildVersion(common.Version, embeddedVersion)
 	common.InitEnv()
 
 	logger.SetupLogger()

@@ -1,12 +1,30 @@
+/*
+Copyright (C) 2023-2026 QuantumNous
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as
+published by the Free Software Foundation, either version 3 of the
+License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+For commercial licensing, please contact support@quantumnous.com
+*/
 // web/src/features/system-settings/models/request-content-audit-section.tsx
 // Root 用户配置请求内容审计的记录开关、查看权限、白名单和存储参数。
 
-import { useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { Combobox } from '@/components/ui/combobox'
 import { Button } from '@/components/ui/button'
+import { Combobox } from '@/components/ui/combobox'
 import { Input } from '@/components/ui/input'
 import { searchUsers } from '@/features/users/api'
 
@@ -17,6 +35,7 @@ import {
 import { SettingsPageFormActions } from '../components/settings-page-context'
 import { SettingsSection } from '../components/settings-section'
 import { useUpdateOption } from '../hooks/use-update-option'
+import { saveRequestContentAuditOptions } from './request-content-audit-save'
 
 export type RequestContentAuditSettingsForm = {
   enabled: boolean
@@ -67,22 +86,40 @@ export function RequestContentAuditSection(props: {
   ) => setValues((current) => ({ ...current, [key]: value }))
 
   const save = async () => {
-    const entries: Array<[string, string]> = [
-      ['request_content_audit.enabled', String(values.enabled)],
-      ['request_content_audit.allow_user_view', String(values.allow_user_view)],
-      [
-        'request_content_audit.admin_allowlist',
-        JSON.stringify(values.admin_allowlist),
-      ],
-      ['request_content_audit.retention_days', String(values.retention_days)],
-      ['request_content_audit.storage_path', values.storage_path.trim()],
-      ['request_content_audit.max_record_bytes', String(values.max_record_bytes)],
-      ['request_content_audit.max_asset_bytes', String(values.max_asset_bytes)],
-      ['request_content_audit.chunk_size_bytes', String(values.chunk_size_bytes)],
+    const entries = [
+      { key: 'request_content_audit.enabled', value: String(values.enabled) },
+      {
+        key: 'request_content_audit.allow_user_view',
+        value: String(values.allow_user_view),
+      },
+      {
+        key: 'request_content_audit.admin_allowlist',
+        value: JSON.stringify(values.admin_allowlist),
+      },
+      {
+        key: 'request_content_audit.retention_days',
+        value: String(values.retention_days),
+      },
+      {
+        key: 'request_content_audit.storage_path',
+        value: values.storage_path.trim(),
+      },
+      {
+        key: 'request_content_audit.max_record_bytes',
+        value: String(values.max_record_bytes),
+      },
+      {
+        key: 'request_content_audit.max_asset_bytes',
+        value: String(values.max_asset_bytes),
+      },
+      {
+        key: 'request_content_audit.chunk_size_bytes',
+        value: String(values.chunk_size_bytes),
+      },
     ]
-    for (const [key, value] of entries) {
-      await updateOption.mutateAsync({ key, value })
-    }
+    await saveRequestContentAuditOptions(entries, (entry) =>
+      updateOption.mutateAsync(entry)
+    )
   }
 
   const addSelectedUser = (value: string | null) => {
@@ -90,7 +127,10 @@ export function RequestContentAuditSection(props: {
     const userId = Number(value)
     if (!Number.isInteger(userId) || userId <= 0) return
     if (!values.admin_allowlist.includes(userId)) {
-      update('admin_allowlist', [...values.admin_allowlist, userId].sort((a, b) => a - b))
+      update(
+        'admin_allowlist',
+        [...values.admin_allowlist, userId].sort((a, b) => a - b)
+      )
     }
     setSelectedUser('')
   }
@@ -122,9 +162,13 @@ export function RequestContentAuditSection(props: {
 
         <div className='space-y-3 lg:col-span-2'>
           <div>
-            <div className='text-sm font-medium'>{t('Administrator view whitelist')}</div>
+            <div className='text-sm font-medium'>
+              {t('Administrator view whitelist')}
+            </div>
             <p className='text-muted-foreground text-xs'>
-              {t('Whitelisted administrators can view other users records in redacted form.')}
+              {t(
+                'Whitelisted administrators can view other users records in redacted form.'
+              )}
             </p>
           </div>
           <Combobox
@@ -206,7 +250,9 @@ export function RequestContentAuditSection(props: {
               onChange={(event) => update('storage_path', event.target.value)}
             />
             <span className='text-muted-foreground block text-xs'>
-              {t('Relative paths are stored under the configured log directory.')}
+              {t(
+                'Relative paths are stored under the configured log directory.'
+              )}
             </span>
           </label>
         </div>
@@ -231,7 +277,9 @@ function SettingNumberField(props: {
         max={props.max}
         step={1}
         value={props.value}
-        onChange={(event) => props.onChange(Number(event.target.value) || props.min)}
+        onChange={(event) =>
+          props.onChange(Number(event.target.value) || props.min)
+        }
       />
     </label>
   )

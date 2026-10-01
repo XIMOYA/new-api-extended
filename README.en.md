@@ -14,11 +14,11 @@
 </p>
 
 <p align="center">
-  <a href="https://raw.githubusercontent.com/Calcium-Ion/new-api/main/LICENSE">
-    <img src="https://img.shields.io/github/license/Calcium-Ion/new-api?color=brightgreen" alt="license">
+  <a href="https://raw.githubusercontent.com/XIMOYA/new-api-extended/main/LICENSE">
+    <img src="https://img.shields.io/github/license/XIMOYA/new-api-extended?color=brightgreen" alt="license">
   </a>
-  <a href="https://github.com/Calcium-Ion/new-api/releases/latest">
-    <img src="https://img.shields.io/github/v/release/Calcium-Ion/new-api?color=brightgreen&include_prereleases" alt="release">
+  <a href="https://github.com/XIMOYA/new-api-extended/releases/latest">
+    <img src="https://img.shields.io/github/v/release/XIMOYA/new-api-extended?color=brightgreen&include_prereleases" alt="release">
   </a>
   <a href="https://github.com/users/Calcium-Ion/packages/container/package/new-api">
     <img src="https://img.shields.io/badge/docker-ghcr.io-blue" alt="docker">
@@ -45,6 +45,8 @@
 </p>
 
 <p align="center">
+  <a href="#-about-this-fork">About This Fork</a> •
+  <a href="#-what-this-fork-changes">Fork Changes</a> •
   <a href="#-quick-start">Quick Start</a> •
   <a href="#-key-features">Key Features</a> •
   <a href="#-deployment">Deployment</a> •
@@ -64,6 +66,43 @@
 > - Users must lawfully obtain upstream API keys, accounts, model services, and interface permissions, and must comply with upstream terms of service and applicable laws and regulations.
 > - Users should ensure their use complies with upstream terms of service and applicable laws and regulations.
 > - When providing generative AI services to the public, users should comply with applicable regulatory requirements and fulfill all filing, licensing, content safety, real-name verification, log retention, tax, and upstream authorization obligations required by their jurisdiction.
+
+---
+
+## 🔀 About This Fork
+
+This repository is **New API Extended**, an independent modified version of [New API](https://github.com/QuantumNous/new-api), maintained under [XIMOYA/new-api-extended](https://github.com/XIMOYA/new-api-extended). It is not an official New API release and should not be treated as upstream support.
+
+The original New API gateway, multi-model relay, billing, authentication, deployment, and compatibility features remain available. This fork maintains an independent feature set and may diverge from upstream behavior, configuration, and release timing.
+
+## ✨ What This Fork Changes
+
+### 📊 NarraFork Quota and Event System
+
+- Quota balance events with detailed quota, token, billing-source, latency, and cache-hit fields.
+- Cache hit-rate scopes, cache-hit token metrics, and related dashboard visibility.
+- Global policy controls plus user-level and channel-level display preferences and overrides.
+- A single validated batch request for saving NarraFork system settings.
+
+### 🧾 Request Content Audit
+
+- Structured capture of JSON, raw-body, multipart, and multimodal request content.
+- Zstandard-compressed and AES-GCM-encrypted storage with integrity validation and retention cleanup.
+- Redaction-aware access control, full-content streaming, previews, asset viewing, and deduplicated resources.
+- Request-record views for inspecting structured content without exposing audit data to unauthorized users.
+
+### 📈 Dashboard and Usage Observability
+
+- Cache hit-rate cards and expanded cache/token usage details.
+- Reasoning-effort and reasoning-token visibility in usage logs.
+- Additional request-record, quota, and operational diagnostics in the web interface.
+
+### 🛡️ Reliability and Engineering
+
+- Independent fixes for request-record rate-limit isolation and related operational behavior.
+- Regression tests and development documentation for the fork-specific backend and frontend features.
+
+The upstream project remains the reference for the original feature set. Review this repository's changelog and source history when evaluating compatibility with upstream New API.
 
 ---
 
@@ -113,8 +152,8 @@
 
 ```bash
 # Clone the project
-git clone https://github.com/QuantumNous/new-api.git
-cd new-api
+git clone https://github.com/XIMOYA/new-api-extended.git
+cd new-api-extended
 
 # Edit docker-compose.yml configuration
 nano docker-compose.yml
@@ -158,6 +197,35 @@ docker run --name new-api -d --restart always \
 > When operating this project as a public generative AI service or API resale service, users should first complete all required filing, licensing, content safety, real-name verification, log retention, tax, payment, and upstream authorization obligations.
 
 📖 For more deployment methods, please refer to [Deployment Guide](https://docs.newapi.pro/en/docs/installation)
+
+---
+
+## 🛠️ Build From Source
+
+This fork is built from the same source tree as the upstream project. Build the frontend first, then build the Go backend from the repository root.
+
+```bash
+cd web
+bun install --frozen-lockfile
+bun run build
+cd ..
+go build -ldflags "-s -w -X github.com/QuantumNous/new-api/common.Version=$(tr -d '\r\n' < VERSION)" -o new-api
+```
+
+### Windows AMD64 Test Build
+
+Run the following commands from Git Bash on Windows:
+
+```bash
+cd web
+bun install --frozen-lockfile
+VERSION=$(tr -d '\r\n' < ../VERSION)
+DISABLE_ESLINT_PLUGIN='true' VITE_REACT_APP_VERSION="$VERSION" bun run build
+cd ..
+go build -ldflags "-s -w -X github.com/QuantumNous/new-api/common.Version=$VERSION" -o new-api-windows-amd64-test.exe
+```
+
+Keep the corresponding source code, `LICENSE`, `NOTICE`, and `THIRD-PARTY-LICENSES.md` when redistributing a built executable.
 
 ---
 
@@ -295,7 +363,9 @@ docker run --name new-api -d --restart always \
 ## 🚢 Deployment
 
 > [!TIP]
-> **Latest Docker image:** `calciumion/new-api:latest`
+> **Latest upstream Docker image:** `calciumion/new-api:latest`
+>
+> This fork currently does not publish a separate Docker image. The upstream image is provided for reference and does not automatically contain the changes in `XIMOYA/new-api-extended`; use a source build when you need this fork's features.
 
 ### 📋 Deployment Requirements
 
@@ -349,8 +419,8 @@ docker run --name new-api -d --restart always \
 
 ```bash
 # Clone the project
-git clone https://github.com/QuantumNous/new-api.git
-cd new-api
+git clone https://github.com/XIMOYA/new-api-extended.git
+cd new-api-extended
 
 # Edit configuration
 nano docker-compose.yml
@@ -468,6 +538,26 @@ Welcome all forms of contribution!
 
 ---
 
+## 📜 License
+
+This project is licensed under the [GNU Affero General Public License v3.0 (AGPLv3)](./LICENSE). This repository is an independent modified version of New API, originally developed from [One API](https://github.com/songquanpeng/one-api) under the MIT License.
+
+Additional terms under AGPLv3 Section 7 apply. Modified versions must preserve the author attribution notice:
+
+```text
+Frontend design and development by New API contributors.
+```
+
+Modified versions that present a user interface must also preserve a visible link to the original project: <https://github.com/QuantumNous/new-api>.
+
+When distributing a Windows executable, Docker image, or other binary form, provide the corresponding source code and build instructions for that version. Keep `LICENSE`, `NOTICE`, and `THIRD-PARTY-LICENSES.md` with distributed packages whenever applicable.
+
+If you run a modified version as a public network service, provide remote users with a clear way to obtain the corresponding source code of the running version. Clearly mark modifications and do not imply that this fork is an official New API release.
+
+If your organization's policies do not permit the use of AGPLv3-licensed software, or if you wish to avoid the open-source obligations of AGPLv3, please contact us at: [support@quantumnous.com](mailto:support@quantumnous.com)
+
+---
+
 ## 🌟 Star History
 
 <div align="center">
@@ -484,7 +574,7 @@ Welcome all forms of contribution!
 
 If this project is helpful to you, welcome to give us a ⭐️ Star！
 
-**[Official Documentation](https://docs.newapi.pro/en/docs)** • **[Issue Feedback](https://github.com/Calcium-Ion/new-api/issues)** • **[Latest Release](https://github.com/Calcium-Ion/new-api/releases)**
+**[Official Documentation](https://docs.newapi.pro/en/docs)** • **[Fork Issues](https://github.com/XIMOYA/new-api-extended/issues)** • **[Fork Releases](https://github.com/XIMOYA/new-api-extended/releases)**
 
 <sub>Built with ❤️ by QuantumNous</sub>
 

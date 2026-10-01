@@ -1,4 +1,22 @@
 /*
+Copyright (C) 2023-2026 QuantumNous
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as
+published by the Free Software Foundation, either version 3 of the
+License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+For commercial licensing, please contact support@quantumnous.com
+*/
+/*
 web/src/features/channels/components/drawers/sections/narrafork-quota-event-section.tsx
 组件：渠道级 NarraFork 额度事件覆盖设置
 职责：
@@ -17,7 +35,6 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
 import {
   Select,
   SelectContent,
@@ -25,6 +42,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
 
 import type { ChannelFormValues } from '../../../lib/channel-form'
 
@@ -270,11 +288,15 @@ export function NarraForkQuotaEventSection({ disabled = false }: Props) {
                 {...field}
                 disabled={disabled}
                 className='min-h-32 font-mono text-xs'
-                placeholder={t('Example: {"cache_hit_rate_scope":"recent_days","cache_hit_rate_days":7}')}
+                placeholder={t(
+                  'Example: {"cache_hit_rate_scope":"recent_days","cache_hit_rate_days":7}'
+                )}
               />
             </FormControl>
             <FormDescription>
-              {t('Use JSON to override any NarraFork display field. Empty or omitted fields inherit from global settings.')}
+              {t(
+                'Use JSON to override any NarraFork display field. Empty or omitted fields inherit from global settings.'
+              )}
             </FormDescription>
             <FormMessage />
           </FormItem>
